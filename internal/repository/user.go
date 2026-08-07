@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/ASTeterin/loyalty/internal/model"
+	"github.com/ASTeterin/gothkeeper/internal/model"
 	"github.com/gofrs/uuid"
 )
 

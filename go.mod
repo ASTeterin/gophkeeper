@@ -1,4 +1,4 @@
-module github.com/ASTeterin/loyalty
+module github.com/ASTeterin/gothkeeper
 
 go 1.26.2
 

@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 	"errors"
-	"github.com/ASTeterin/loyalty/internal/cookie"
-	"github.com/ASTeterin/loyalty/internal/service"
+	"github.com/ASTeterin/gothkeeper/internal/cookie"
+	"github.com/ASTeterin/gothkeeper/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/ASTeterin/loyalty/internal/model"
+	"github.com/ASTeterin/gothkeeper/internal/model"
 )
 
 var (
