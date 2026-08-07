@@ -20,7 +20,7 @@ func ParseFlags() Config {
 	var dbConnectionString string
 	var signingKey = defaultSigningKey
 	flag.StringVar(&appAddr, "a", ":8080", "port to run server")
-	flag.StringVar(&dbConnectionString, "d", "postgres://admin:1234@localhost:5432/gothkeeper?sslmode=disable", "database DSN")
+	flag.StringVar(&dbConnectionString, "d", "postgres://admin:1234@localhost:5432/gophkeeper?sslmode=disable", "database DSN")
 	flag.Parse()
 
 	if envAppAddr, exist := os.LookupEnv("RUN_ADDRESS"); exist {

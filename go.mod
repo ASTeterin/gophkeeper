@@ -1,4 +1,4 @@
-module github.com/ASTeterin/gothkeeper
+module github.com/ASTeterin/gophkeeper
 
 go 1.26.2
 

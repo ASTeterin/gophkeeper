@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/ASTeterin/gothkeeper/internal/model"
+	"github.com/ASTeterin/gophkeeper/internal/model"
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"testing"
