@@ -1,11 +1,13 @@
-package db
+package repository
 
 import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/ASTeterin/gophkeeper/internal/model"
+
 	"github.com/gofrs/uuid"
+
+	"github.com/ASTeterin/gophkeeper/internal/model"
 )
 
 type userRepo struct {
