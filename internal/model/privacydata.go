@@ -20,4 +20,6 @@ type PrivateDataRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*PrivateData, error)
 	ListByUserID(ctx context.Context, userID uuid.UUID) ([]*PrivateData, error)
 	GetByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) (*PrivateData, error)
+	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
+	BatchStore(ctx context.Context, data []*PrivateData) error
 }

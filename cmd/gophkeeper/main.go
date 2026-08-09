@@ -35,19 +35,46 @@ func main() {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	repo := db.NewUserRepository(dbConn)
-	userService := service.NewUserService(repo)
+	userRepo := db.NewUserRepository(dbConn)
+	dataRepo := db.NewPrivateDataRepo(dbConn)
+	userService := service.NewUserService(userRepo)
+	dataService := service.NewPrivateDataService(dataRepo)
 
-	h := handler.NewHandler(userService)
+	uh := handler.NewUserHandler(userService)
+	dh := handler.NewPrivateDataHandler(dataService)
 
 	r := gin.Default()
 	r.Use(cookie.CookieHandler(config.SigningKey))
 
 	r.POST("/api/user/register", func(c *gin.Context) {
-		h.Register(ctx, c)
+		uh.Register(ctx, c)
 	})
 	r.POST("/api/user/login", func(c *gin.Context) {
-		h.Authenticate(ctx, c)
+		uh.Authenticate(ctx, c)
+	})
+	// Создание одной записи
+	r.POST("/api/data", func(c *gin.Context) {
+		dh.Store(c)
+	})
+
+	// Получение всех записей
+	r.GET("/api/data", func(c *gin.Context) {
+		dh.GetAll(c)
+	})
+
+	// Получение по ключу
+	r.GET("/api/data/:key", func(c *gin.Context) {
+		dh.GetByKey(c)
+	})
+
+	// Удаление по ID
+	r.DELETE("/api/data/:id", func(c *gin.Context) {
+		dh.Delete(c)
+	})
+
+	// Полная замена всех данных (удаляет старые, сохраняет новые)
+	r.POST("/api/data/sync", func(c *gin.Context) {
+		dh.ReplaceAll(c)
 	})
 	if err := r.Run(config.AppAddr); err != nil {
 		log.Fatalf("failed to run server: %v", err)

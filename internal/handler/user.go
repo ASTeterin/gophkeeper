@@ -23,7 +23,7 @@ type Handler interface {
 	Authenticate(ctx context.Context, c *gin.Context)
 }
 
-func NewHandler(userService service.UserService) Handler {
+func NewUserHandler(userService service.UserService) Handler {
 	return &handler{
 		userService: userService,
 	}

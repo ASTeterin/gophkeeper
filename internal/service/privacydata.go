@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-
 	"github.com/google/uuid"
 
 	"github.com/ASTeterin/gophkeeper/internal/model"
@@ -15,11 +14,18 @@ var (
 	ErrNotFound  = errors.New("record not found")
 )
 
+type DataItem struct {
+	DataKey     string `json:"data_key"`
+	Description string `json:"description"`
+	Data        []byte `json:"data"`
+}
+
 type PrivateDataService interface {
 	AddData(ctx context.Context, userID uuid.UUID, key string, description string, data []byte) (*model.PrivateData, error)
 	GetDataByKey(ctx context.Context, userID uuid.UUID, key string) (*model.PrivateData, error)
 	GetAllData(ctx context.Context, userID uuid.UUID) ([]*model.PrivateData, error)
 	DeleteData(ctx context.Context, id uuid.UUID) error
+	ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error
 }
 
 type PrivateDataServiceImpl struct {
@@ -71,4 +77,29 @@ func (s *PrivateDataServiceImpl) GetAllData(ctx context.Context, userID uuid.UUI
 
 func (s *PrivateDataServiceImpl) DeleteData(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *PrivateDataServiceImpl) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error {
+	// Используем транзакцию на уровне сервиса, если репозиторий не поддерживает транзакции напрямую
+	// Для простоты здесь последовательные вызовы, но лучше обернуть в tx
+
+	// 1. Удаляем старые
+	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
+		return err
+	}
+
+	// 2. Формируем новые
+	var newItems []*model.PrivateData
+	for _, item := range items {
+		newItems = append(newItems, &model.PrivateData{
+			ID:          uuid.New(),
+			UserID:      userID,
+			DataKey:     item.DataKey,
+			Description: item.Description,
+			Data:        item.Data,
+		})
+	}
+
+	// 3. Сохраняем новые
+	return s.repo.BatchStore(ctx, newItems)
 }

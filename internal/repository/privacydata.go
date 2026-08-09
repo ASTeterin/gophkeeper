@@ -19,13 +19,13 @@ func NewPrivateDataRepo(db *sql.DB) model.PrivateDataRepository {
 }
 
 func (r *privateDataRepository) Store(ctx context.Context, data *model.PrivateData) error {
-	query := `INSERT INTO public.private_data (id, user_id, data_key, description, data, created_at) VALUES ($1, $2, $3, $4, $5, $6)`
+	query := `INSERT INTO public.private_data (id, user_id, data_key, description, data) VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.db.ExecContext(ctx, query, data.ID, data.UserID, data.DataKey, data.Description, data.Data)
 	return err
 }
 
 func (r *privateDataRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `UPDATE public.private_data SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
+	query := `UPDATE public.private_data SET deleted_at = NOW() WHERE id = $1`
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (r *privateDataRepository) Delete(ctx context.Context, id uuid.UUID) error 
 }
 
 func (r *privateDataRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.PrivateData, error) {
-	query := `SELECT id, user_id, data_key, description, data, created_at, deleted_at FROM public.private_data WHERE id = $1 AND deleted_at IS NULL`
+	query := `SELECT id, user_id, data_key, description, data FROM public.private_data WHERE id = $1`
 	var p model.PrivateData
 	err := r.db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.UserID, &p.DataKey, &p.Description, &p.Data)
 	if err != nil {
@@ -48,7 +48,7 @@ func (r *privateDataRepository) GetByID(ctx context.Context, id uuid.UUID) (*mod
 }
 
 func (r *privateDataRepository) ListByUserID(ctx context.Context, userID uuid.UUID) ([]*model.PrivateData, error) {
-	query := `SELECT id, user_id, data_key, description, data, created_at, deleted_at FROM public.private_data WHERE user_id = $1 AND deleted_at IS NULL`
+	query := `SELECT id, user_id, data_key, description, data FROM public.private_data WHERE user_id = $1`
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
@@ -67,11 +67,44 @@ func (r *privateDataRepository) ListByUserID(ctx context.Context, userID uuid.UU
 }
 
 func (r *privateDataRepository) GetByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) (*model.PrivateData, error) {
-	query := `SELECT id, user_id, data_key, description, data, created_at, deleted_at FROM public.private_data WHERE user_id = $1 AND data_key = $2 AND deleted_at IS NULL`
+	query := `SELECT id, user_id, data_key, description, data FROM public.private_data WHERE user_id = $1 AND data_key = $2`
 	var p model.PrivateData
 	err := r.db.QueryRowContext(ctx, query, userID, dataKey).Scan(&p.ID, &p.UserID, &p.DataKey, &p.Description, &p.Data)
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (r *privateDataRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
+	query := `DELETE FROM public.private_data WHERE user_id = $1 AND deleted_at IS NULL`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *privateDataRepository) BatchStore(ctx context.Context, data []*model.PrivateData) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO public.private_data (id, user_id, data_key, description, data,) VALUES ($1, $2, $3, $4, $5)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, item := range data {
+		_, err := stmt.ExecContext(ctx, item.ID, item.UserID, item.DataKey, item.Description, item.Data)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
