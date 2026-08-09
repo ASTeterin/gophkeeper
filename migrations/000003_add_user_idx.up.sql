@@ -1,0 +1,1 @@
+CREATE INDEX idx_private_data_user ON public.private_data(user_id);
