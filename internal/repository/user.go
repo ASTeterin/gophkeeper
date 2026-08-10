@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 
 	"github.com/ASTeterin/gophkeeper/internal/model"
 )
@@ -22,7 +22,7 @@ func NewUserRepository(db *sql.DB) model.UserRepository {
 }
 
 func (repo *userRepo) NextUserID() (uuid.UUID, error) {
-	return uuid.NewV1()
+	return uuid.New(), nil
 }
 
 func (repo *userRepo) Store(ctx context.Context, user model.User) error {

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"github.com/ASTeterin/gophkeeper/internal/model"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -18,7 +18,7 @@ func Test_userService_Register(t *testing.T) {
 	repo := &mockUserRepository{
 		user: []model.User{
 			{
-				UUID:     uuid.Must(uuid.NewV1()),
+				UUID:     uuid.New(),
 				Login:    "user",
 				PassHash: "",
 			},
@@ -64,7 +64,7 @@ func Test_userService_Authenticate(t *testing.T) {
 	repo := &mockUserRepository{
 		user: []model.User{
 			{
-				UUID:     uuid.Must(uuid.NewV1()),
+				UUID:     uuid.New(),
 				Login:    userLogin,
 				PassHash: hash,
 			},
@@ -109,7 +109,7 @@ type mockUserRepository struct {
 }
 
 func (m mockUserRepository) NextUserID() (uuid.UUID, error) {
-	return uuid.NewV1()
+	return uuid.New(), nil
 }
 
 func (m mockUserRepository) Store(_ context.Context, user model.User) error {

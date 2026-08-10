@@ -14,16 +14,19 @@ type privateDataHandler struct {
 	service service.PrivateDataService
 }
 
+// AddDataRequest represents the request body for storing a single private data item.
 type AddDataRequest struct {
 	DataKey     string `json:"data_key" binding:"required"`
 	Description string `json:"description"`
 	Data        string `json:"data" binding:"required"`
 }
 
+// BatchDataRequest represents the request body for replacing all user data.
 type BatchDataRequest struct {
 	Items []service.DataItem `json:"items" binding:"required"`
 }
 
+// PrivateDataHandler defines the HTTP handlers for managing private data.
 type PrivateDataHandler interface {
 	Store(c *gin.Context)
 	GetByKey(c *gin.Context)
@@ -32,10 +35,13 @@ type PrivateDataHandler interface {
 	ReplaceAll(c *gin.Context)
 }
 
+// NewPrivateDataHandler creates a new instance of the private data handler.
 func NewPrivateDataHandler(svc service.PrivateDataService) PrivateDataHandler {
 	return &privateDataHandler{service: svc}
 }
 
+// Store adds a new private data item for the authenticated user.
+// Returns 201 Created on success, 409 Conflict if the key already exists, 400/401/500 on error.
 func (h *privateDataHandler) Store(c *gin.Context) {
 	userIDStr := c.GetString(cookie.GetUserKey())
 	if userIDStr == "" {
@@ -79,6 +85,8 @@ func (h *privateDataHandler) Store(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+// GetByKey retrieves a specific private data item by its key.
+// Returns 200 OK with the data, 404 Not Found if missing, 400/401/500 on error.
 func (h *privateDataHandler) GetByKey(c *gin.Context) {
 	userIDStr := c.GetString(cookie.GetUserKey())
 	if userIDStr == "" {
@@ -110,6 +118,8 @@ func (h *privateDataHandler) GetByKey(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// GetAll retrieves all private data items for the authenticated user.
+// Returns 200 OK with a list of items, 401/500 on error.
 func (h *privateDataHandler) GetAll(c *gin.Context) {
 	userIDStr := c.GetString(cookie.GetUserKey())
 	if userIDStr == "" {
@@ -131,6 +141,8 @@ func (h *privateDataHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// Delete removes a private data item by its ID.
+// Returns 204 No Content on success, 400/500 on error.
 func (h *privateDataHandler) Delete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -147,6 +159,8 @@ func (h *privateDataHandler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// ReplaceAll deletes all existing data for the user and saves a new batch.
+// Returns 200 OK on success, 400/401/500 on error.
 func (h *privateDataHandler) ReplaceAll(c *gin.Context) {
 	userIDStr := c.GetString(cookie.GetUserKey())
 	if userIDStr == "" {
@@ -173,7 +187,7 @@ func (h *privateDataHandler) ReplaceAll(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// isValidBase64 проверяет, является ли строка валидным base64
+// isValidBase64 checks if a string is valid base64.
 func isValidBase64(s string) bool {
 	if len(s) == 0 {
 		return false

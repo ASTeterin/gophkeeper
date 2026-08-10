@@ -80,15 +80,10 @@ func (s *PrivateDataServiceImpl) DeleteData(ctx context.Context, id uuid.UUID) e
 }
 
 func (s *PrivateDataServiceImpl) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error {
-	// Используем транзакцию на уровне сервиса, если репозиторий не поддерживает транзакции напрямую
-	// Для простоты здесь последовательные вызовы, но лучше обернуть в tx
-
-	// 1. Удаляем старые
 	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
 		return err
 	}
 
-	// 2. Формируем новые
 	var newItems []*model.PrivateData
 	for _, item := range items {
 		newItems = append(newItems, &model.PrivateData{
@@ -100,6 +95,5 @@ func (s *PrivateDataServiceImpl) ReplaceAllData(ctx context.Context, userID uuid
 		})
 	}
 
-	// 3. Сохраняем новые
 	return s.repo.BatchStore(ctx, newItems)
 }

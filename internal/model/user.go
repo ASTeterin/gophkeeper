@@ -3,7 +3,7 @@ package model
 import (
 	"context"
 	"errors"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 var (

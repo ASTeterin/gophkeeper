@@ -68,11 +68,3 @@ func (h *handler) Authenticate(ctx context.Context, c *gin.Context) {
 	c.Set(cookie.GetUserKey(), *userID)
 	c.Status(http.StatusOK)
 }
-
-func getUserID(c *gin.Context) string {
-	return c.GetString(cookie.GetUserKey())
-}
-
-func withUserID(ctx context.Context, userID string) context.Context {
-	return context.WithValue(ctx, "userID", userID)
-}
