@@ -88,7 +88,7 @@ func Test_privateDataHandler_Store(t *testing.T) {
 }
 
 func Test_privateDataHandler_Store_Duplicate(t *testing.T) {
-	router := setupDataRouter() // Один роутер = один пользователь
+	router := setupDataRouter()
 	body := requestBody{DataKey: "gmail", Data: "dGVzdA=="}
 	jsonBody, _ := json.Marshal(body)
 
@@ -164,7 +164,6 @@ func Test_privateDataHandler_GetAll(t *testing.T) {
 func Test_privateDataHandler_Delete(t *testing.T) {
 	router := setupDataRouter()
 
-	// Создаем запись для удаления
 	jsonBody, _ := json.Marshal(AddDataRequest{
 		DataKey: "delete_me",
 		Data:    "ZGF0YQ==",

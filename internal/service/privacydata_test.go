@@ -146,7 +146,6 @@ func Test_privateDataService_DeleteData(t *testing.T) {
 	}
 	s := NewPrivateDataService(repo)
 
-	// Удаляем существующий
 	err := s.DeleteData(ctx, itemID)
 	assert.NoError(t, err)
 	assert.Len(t, repo.data, 0)
@@ -171,13 +170,10 @@ func Test_privateDataService_ReplaceAllData(t *testing.T) {
 	err := s.ReplaceAllData(ctx, userID, items)
 	assert.NoError(t, err)
 
-	// Проверяем, что старые удалились и новые добавились
 	assert.Len(t, repo.data, 2)
 	assert.Equal(t, "new_1", repo.data[0].DataKey)
 	assert.Equal(t, "new_2", repo.data[1].DataKey)
 }
-
-// --- Mock ---
 
 type mockPrivateDataRepository struct {
 	data []*model.PrivateData
