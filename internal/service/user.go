@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ASTeterin/gophkeeper/internal/model"

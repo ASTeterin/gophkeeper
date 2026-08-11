@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
-	"github.com/ASTeterin/gophkeeper/internal/model"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"testing"
+
+	"github.com/ASTeterin/gophkeeper/internal/model"
 )
 
 const (

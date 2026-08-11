@@ -8,13 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ASTeterin/gophkeeper/internal/cookie"
-	"github.com/ASTeterin/gophkeeper/internal/model"
-	"github.com/ASTeterin/gophkeeper/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ASTeterin/gophkeeper/internal/cookie"
+	"github.com/ASTeterin/gophkeeper/internal/model"
+	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
 type requestBody struct {

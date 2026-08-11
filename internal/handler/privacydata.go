@@ -3,11 +3,13 @@ package handler
 import (
 	"encoding/base64"
 	"errors"
-	"github.com/ASTeterin/gophkeeper/internal/cookie"
-	"github.com/ASTeterin/gophkeeper/internal/service"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"net/http"
+
+	"github.com/ASTeterin/gophkeeper/internal/cookie"
+	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
 type privateDataHandler struct {

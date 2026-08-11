@@ -9,17 +9,19 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/ASTeterin/gophkeeper/internal/cookie"
 	"github.com/ASTeterin/gophkeeper/internal/handler"
 	db "github.com/ASTeterin/gophkeeper/internal/repository"
 	"github.com/ASTeterin/gophkeeper/internal/service"
-	"github.com/gin-gonic/gin"
 
-	appConfig "github.com/ASTeterin/gophkeeper/internal/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v4/stdlib"
+
+	appConfig "github.com/ASTeterin/gophkeeper/internal/config"
 )
 
 func main() {

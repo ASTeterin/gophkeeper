@@ -3,10 +3,12 @@ package handler
 import (
 	"context"
 	"errors"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
 	"github.com/ASTeterin/gophkeeper/internal/cookie"
 	"github.com/ASTeterin/gophkeeper/internal/service"
-	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type handler struct {
