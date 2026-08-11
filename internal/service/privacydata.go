@@ -32,7 +32,7 @@ type PrivateDataServiceImpl struct {
 	repo model.PrivateDataRepository
 }
 
-func NewPrivateDataService(repo model.PrivateDataRepository) *PrivateDataServiceImpl {
+func NewPrivateDataService(repo model.PrivateDataRepository) PrivateDataService {
 	return &PrivateDataServiceImpl{repo: repo}
 }
 

@@ -60,7 +60,6 @@ func (h *privateDataHandler) Store(c *gin.Context) {
 		return
 	}
 
-	// Декодируем данные, если они в base64, иначе используем как есть
 	var data []byte
 	if isValidBase64(req.Data) {
 		data, err = base64.StdEncoding.DecodeString(req.Data)
