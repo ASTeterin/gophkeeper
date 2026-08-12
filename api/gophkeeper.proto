@@ -2,7 +2,12 @@ syntax = "proto3";
 
 package private_data;
 
-option go_package = "github.com/ASTeterin/gophkeeper/internal/proto";
+option go_package = "github.com/ASTeterin/gophkeeper/api";
+
+service UserService {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  rpc Authenticate (AuthenticateRequest) returns (AuthenticateResponse);
+}
 
 service PrivateDataService {
   rpc Store (StoreRequest) returns (PrivateData);
@@ -11,10 +16,31 @@ service PrivateDataService {
   rpc Delete (DeleteRequest) returns (Empty);
   rpc ReplaceAll (ReplaceAllRequest) returns (Empty);
 }
+
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+}
+
+message AuthenticateRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message AuthenticateResponse {
+  string user_id = 1;
+}
+
 message PrivateData {
   string id = 1;
   string user_id = 2;
   string data_key = 3;
+  string description = 4;
+  bytes data = 5;
 }
 
 message StoreRequest {

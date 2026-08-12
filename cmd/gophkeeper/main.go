@@ -77,13 +77,13 @@ func main() {
 	r.POST("/api/data/sync", func(c *gin.Context) {
 		dh.ReplaceAll(c)
 	})
-	if err := r.Run(config.AppAddr); err != nil {
-		log.Fatalf("failed to run server: %v", err)
-	}
 
 	grpcServer := grpcPkg.NewServer()
-	grpcSvc := grpc.NewPrivateDataGRPCServer(dataService)
-	pb.RegisterPrivateDataServiceServer(grpcServer, grpcSvc)
+	grpcDataSvc := grpc.NewPrivateDataGRPCServer(dataService)
+	pb.RegisterPrivateDataServiceServer(grpcServer, grpcDataSvc)
+
+	grpcUserSvc := grpc.NewUserGRPCServer(userService)
+	pb.RegisterUserServiceServer(grpcServer, grpcUserSvc)
 
 	host, _, err := net.SplitHostPort(config.AppAddr)
 	if err != nil {
@@ -99,6 +99,10 @@ func main() {
 		log.Printf("gRPC server listening on %s", grpcAddr)
 		return grpcServer.Serve(lis)
 	})
+
+	if err := r.Run(config.AppAddr); err != nil {
+		log.Fatalf("failed to run server: %v", err)
+	}
 }
 
 func migrateDB(conn *sql.DB) {
