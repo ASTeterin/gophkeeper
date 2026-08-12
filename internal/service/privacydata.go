@@ -29,15 +29,15 @@ type PrivateDataService interface {
 	ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error
 }
 
-type PrivateDataServiceImpl struct {
+type privateDataService struct {
 	repo model.PrivateDataRepository
 }
 
 func NewPrivateDataService(repo model.PrivateDataRepository) PrivateDataService {
-	return &PrivateDataServiceImpl{repo: repo}
+	return &privateDataService{repo: repo}
 }
 
-func (s *PrivateDataServiceImpl) AddData(ctx context.Context, userID uuid.UUID, key string, description string, data []byte) (*model.PrivateData, error) {
+func (s *privateDataService) AddData(ctx context.Context, userID uuid.UUID, key string, description string, data []byte) (*model.PrivateData, error) {
 	_, err := s.repo.GetByUserAndKey(ctx, userID, key)
 	if err == nil {
 		return nil, ErrKeyExists
@@ -61,7 +61,7 @@ func (s *PrivateDataServiceImpl) AddData(ctx context.Context, userID uuid.UUID, 
 	return newData, nil
 }
 
-func (s *PrivateDataServiceImpl) GetDataByKey(ctx context.Context, userID uuid.UUID, key string) (*model.PrivateData, error) {
+func (s *privateDataService) GetDataByKey(ctx context.Context, userID uuid.UUID, key string) (*model.PrivateData, error) {
 	data, err := s.repo.GetByUserAndKey(ctx, userID, key)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -72,15 +72,15 @@ func (s *PrivateDataServiceImpl) GetDataByKey(ctx context.Context, userID uuid.U
 	return data, nil
 }
 
-func (s *PrivateDataServiceImpl) GetAllData(ctx context.Context, userID uuid.UUID) ([]*model.PrivateData, error) {
+func (s *privateDataService) GetAllData(ctx context.Context, userID uuid.UUID) ([]*model.PrivateData, error) {
 	return s.repo.ListByUserID(ctx, userID)
 }
 
-func (s *PrivateDataServiceImpl) DeleteData(ctx context.Context, id uuid.UUID) error {
+func (s *privateDataService) DeleteData(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *PrivateDataServiceImpl) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error {
+func (s *privateDataService) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error {
 	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
 		return err
 	}
