@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	pb "github.com/ASTeterin/gophkeeper/api"
-	"github.com/ASTeterin/gophkeeper/internal/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	pb "github.com/ASTeterin/gophkeeper/api"
+	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
 type UserGRPCServer struct {
