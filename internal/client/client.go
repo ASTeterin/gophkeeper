@@ -70,6 +70,12 @@ func (a *App) Run() error {
 				continue
 			}
 			a.handleAdd(args[1], args[2])
+		case "get":
+			if len(args) < 2 {
+				fmt.Println("Usage: get <key>")
+				continue
+			}
+			a.handleGet(args[1])
 		case "list":
 			a.handleList()
 		case "sync":
@@ -88,6 +94,7 @@ func (a *App) printHelp() {
 	fmt.Println("  register <login> <pass>  Register a new user")
 	fmt.Println("  login <login> <pass>     Login existing user")
 	fmt.Println("  add <key> <data>         Add private data")
+	fmt.Println("  get <key> 		        Get private data by key")
 	fmt.Println("  list                     List all data keys")
 	fmt.Println("  sync                     Sync data (demo: clears and adds sample)")
 	fmt.Println("  exit                     Exit")
@@ -118,6 +125,19 @@ func (a *App) handleAdd(key, data string) {
 	} else {
 		fmt.Printf("Data added for key: %s\n", key)
 	}
+}
+
+func (a *App) handleGet(key string) {
+	data, err := a.client.GetByKey(context.Background(), key)
+	fmt.Println("!!!!!!!!", data)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	}
+	if data == nil {
+		fmt.Println("No data found.")
+		return
+	}
+	fmt.Printf("Data for key %s: %s\n", key, string(data.Data))
 }
 
 func (a *App) handleList() {

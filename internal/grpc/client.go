@@ -87,6 +87,20 @@ func (c *Client) GetAllData(ctx context.Context) ([]*pb.PrivateData, error) {
 	return resp.Items, nil
 }
 
+func (c *Client) GetByKey(ctx context.Context, key string) (*pb.PrivateData, error) {
+	if c.currentUserID == uuid.Nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+	resp, err := c.dataClient.GetByKey(ctx, &pb.GetByKeyRequest{
+		UserId: c.currentUserID.String(),
+		Key:    key,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (c *Client) SyncData(ctx context.Context, items []SyncItem) error {
 	if c.currentUserID == uuid.Nil {
 		return fmt.Errorf("not authenticated")
