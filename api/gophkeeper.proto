@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package private_data;
+
+option go_package = "github.com/ASTeterin/gophkeeper/internal/proto";
+
+service PrivateDataService {
+  rpc Store (StoreRequest) returns (PrivateData);
+  rpc GetByKey (GetByKeyRequest) returns (PrivateData);
+  rpc GetAll (GetAllRequest) returns (PrivateDataList);
+  rpc Delete (DeleteRequest) returns (Empty);
+  rpc ReplaceAll (ReplaceAllRequest) returns (Empty);
+}
+message PrivateData {
+  string id = 1;
+  string user_id = 2;
+  string data_key = 3;
+}
+
+message StoreRequest {
+  string user_id = 1;
+  string data_key = 2;
+  string description = 3;
+  bytes data = 4;
+}
+
+message GetByKeyRequest {
+  string user_id = 1;
+  string key = 2;
+}
+
+message GetAllRequest {
+  string user_id = 1;
+}
+
+message PrivateDataList {
+  repeated PrivateData items = 1;
+}
+
+message DeleteRequest {
+  string id = 1;
+}
+
+message ReplaceAllRequest {
+  string user_id = 1;
+  repeated DataItem items = 2;
+}
+
+message DataItem {
+  string data_key = 1;
+  string description = 2;
+  bytes data = 3;
+}
+
+message Empty {}
