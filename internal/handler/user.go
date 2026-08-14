@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
@@ -21,8 +20,8 @@ type User struct {
 }
 
 type Handler interface {
-	Register(ctx context.Context, c *gin.Context)
-	Authenticate(ctx context.Context, c *gin.Context)
+	Register(c *gin.Context)
+	Authenticate(c *gin.Context)
 }
 
 func NewUserHandler(userService service.UserService) Handler {
@@ -31,7 +30,8 @@ func NewUserHandler(userService service.UserService) Handler {
 	}
 }
 
-func (h *handler) Register(ctx context.Context, c *gin.Context) {
+func (h *handler) Register(c *gin.Context) {
+	ctx := c.Request.Context()
 	body := User{}
 	err := c.ShouldBindBodyWithJSON(&body)
 	if err != nil {
@@ -53,7 +53,8 @@ func (h *handler) Register(ctx context.Context, c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *handler) Authenticate(ctx context.Context, c *gin.Context) {
+func (h *handler) Authenticate(c *gin.Context) {
+	ctx := c.Request.Context()
 	body := User{}
 	err := c.ShouldBindBodyWithJSON(&body)
 	if err != nil {

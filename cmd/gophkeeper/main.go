@@ -57,10 +57,10 @@ func main() {
 	r.Use(cookie.CookieHandler(config.SigningKey))
 
 	r.POST("/api/user/register", func(c *gin.Context) {
-		uh.Register(ctx, c)
+		uh.Register(c)
 	})
 	r.POST("/api/user/login", func(c *gin.Context) {
-		uh.Authenticate(ctx, c)
+		uh.Authenticate(c)
 	})
 	r.POST("/api/data", func(c *gin.Context) {
 		dh.Store(c)
