@@ -92,16 +92,41 @@ func main() {
 	grpcAddr := net.JoinHostPort(host, config.GRPCAddr)
 
 	g.Go(func() error {
+		log.Printf("HTTP server listening on %s", config.AppAddr)
+		httpLis, err := net.Listen("tcp", config.AppAddr)
+		if err != nil {
+			return fmt.Errorf("failed to listen on %s: %w", config.AppAddr, err)
+		}
+
+		go func() {
+			if err := r.RunListener(httpLis); err != nil {
+				log.Printf("HTTP server error: %v", err)
+			}
+		}()
+
+		<-ctx.Done()
+		return nil
+	})
+
+	g.Go(func() error {
 		lis, err := net.Listen("tcp", grpcAddr)
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", grpcAddr, err)
 		}
 		log.Printf("gRPC server listening on %s", grpcAddr)
-		return grpcServer.Serve(lis)
+
+		go func() {
+			if err := grpcServer.Serve(lis); err != nil {
+				log.Printf("gRPC server error: %v", err)
+			}
+		}()
+		<-ctx.Done()
+		grpcServer.GracefulStop()
+		return nil
 	})
 
-	if err := r.Run(config.AppAddr); err != nil {
-		log.Fatalf("failed to run server: %v", err)
+	if err := g.Wait(); err != nil {
+		log.Fatalf("Servers failed: %v", err)
 	}
 }
 
