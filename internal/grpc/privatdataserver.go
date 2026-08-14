@@ -14,22 +14,22 @@ import (
 	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
-type PrivateDataGRPCServer struct {
+type privateDataGRPCServer struct {
 	pb.UnimplementedPrivateDataServiceServer
 	service service.PrivateDataService
 }
 
-func NewPrivateDataGRPCServer(svc service.PrivateDataService) *PrivateDataGRPCServer {
-	return &PrivateDataGRPCServer{service: svc}
+func NewPrivateDataGRPCServer(svc service.PrivateDataService) pb.PrivateDataServiceServer {
+	return &privateDataGRPCServer{service: svc}
 }
 
-func (s *PrivateDataGRPCServer) Store(ctx context.Context, req *pb.StoreRequest) (*pb.PrivateData, error) {
+func (s *privateDataGRPCServer) Store(ctx context.Context, req *pb.StoreRequest) (*pb.StoreResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
 	}
 
-	result, err := s.service.AddData(ctx, userID, req.DataKey, req.Description, req.Data)
+	_, err = s.service.AddData(ctx, userID, req.DataKey, req.Description, req.Data)
 	if err != nil {
 		if errors.Is(err, service.ErrKeyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
@@ -37,10 +37,10 @@ func (s *PrivateDataGRPCServer) Store(ctx context.Context, req *pb.StoreRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return toProtoPrivateData(result), nil
+	return &pb.StoreResponse{}, nil
 }
 
-func (s *PrivateDataGRPCServer) GetByKey(ctx context.Context, req *pb.GetByKeyRequest) (*pb.PrivateData, error) {
+func (s *privateDataGRPCServer) GetByKey(ctx context.Context, req *pb.GetByKeyRequest) (*pb.PrivateData, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
@@ -57,7 +57,7 @@ func (s *PrivateDataGRPCServer) GetByKey(ctx context.Context, req *pb.GetByKeyRe
 	return toProtoPrivateData(result), nil
 }
 
-func (s *PrivateDataGRPCServer) GetAll(ctx context.Context, req *pb.GetAllRequest) (*pb.PrivateDataList, error) {
+func (s *privateDataGRPCServer) GetAllKeys(ctx context.Context, req *pb.GetAllKeysRequest) (*pb.DataInfoList, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
@@ -68,15 +68,15 @@ func (s *PrivateDataGRPCServer) GetAll(ctx context.Context, req *pb.GetAllReques
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	items := make([]*pb.PrivateData, 0, len(results))
+	items := make([]*pb.DataInfo, 0, len(results))
 	for _, item := range results {
-		items = append(items, toProtoPrivateData(item))
+		items = append(items, toProtoDataInfo(item))
 	}
 
-	return &pb.PrivateDataList{Items: items}, nil
+	return &pb.DataInfoList{Items: items}, nil
 }
 
-func (s *PrivateDataGRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.Empty, error) {
+func (s *privateDataGRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
 	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid id format")
@@ -86,10 +86,10 @@ func (s *PrivateDataGRPCServer) Delete(ctx context.Context, req *pb.DeleteReques
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.Empty{}, nil
+	return &pb.DeleteResponse{}, nil
 }
 
-func (s *PrivateDataGRPCServer) ReplaceAll(ctx context.Context, req *pb.ReplaceAllRequest) (*pb.Empty, error) {
+func (s *privateDataGRPCServer) ReplaceAll(ctx context.Context, req *pb.ReplaceAllRequest) (*pb.ReplaceAllResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
@@ -108,13 +108,21 @@ func (s *PrivateDataGRPCServer) ReplaceAll(ctx context.Context, req *pb.ReplaceA
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.Empty{}, nil
+	return &pb.ReplaceAllResponse{}, nil
 }
 
 func toProtoPrivateData(data *model.PrivateData) *pb.PrivateData {
 	return &pb.PrivateData{
 		Id:          data.ID.String(),
 		UserId:      data.UserID.String(),
+		DataKey:     data.DataKey,
+		Description: data.Description,
+		Data:        data.Data,
+	}
+}
+
+func toProtoDataInfo(data *model.PrivateData) *pb.DataInfo {
+	return &pb.DataInfo{
 		DataKey:     data.DataKey,
 		Description: data.Description,
 	}

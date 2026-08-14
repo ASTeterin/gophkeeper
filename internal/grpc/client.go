@@ -74,11 +74,11 @@ func (c *Client) AddData(ctx context.Context, key, desc string, data []byte) err
 	return err
 }
 
-func (c *Client) GetAllData(ctx context.Context) ([]*pb.PrivateData, error) {
+func (c *Client) GetAllData(ctx context.Context) ([]*pb.DataInfo, error) {
 	if c.currentUserID == uuid.Nil {
 		return nil, fmt.Errorf("not authenticated")
 	}
-	resp, err := c.dataClient.GetAll(ctx, &pb.GetAllRequest{
+	resp, err := c.dataClient.GetAllKeys(ctx, &pb.GetAllKeysRequest{
 		UserId: c.currentUserID.String(),
 	})
 	if err != nil {
