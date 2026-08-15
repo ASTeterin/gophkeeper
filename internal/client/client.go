@@ -27,7 +27,7 @@ func (a *App) Run() error {
 		host = ""
 	}
 	addr := net.JoinHostPort(host, a.config.GRPCAddr)
-
+	fmt.Println(addr)
 	cl, err := grpc.NewClient(addr)
 	if err != nil {
 		return fmt.Errorf("connection failed: %w", err)

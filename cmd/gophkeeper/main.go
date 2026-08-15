@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
 	"os"
@@ -41,7 +42,7 @@ func main() {
 	migrateDB(dbConn)
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	g, ctx := errgroup.WithContext(ctx)
 	defer cancel()
 
@@ -78,7 +79,12 @@ func main() {
 		dh.ReplaceAll(c)
 	})
 
-	grpcServer := grpcPkg.NewServer()
+	creds, err := credentials.NewServerTLSFromFile(config.CertDir+"cert.pem", config.CertDir+"key.pem")
+	if err != nil {
+		log.Fatalf("Failed to generate credentials: %v", err)
+	}
+
+	grpcServer := grpcPkg.NewServer(grpcPkg.Creds(creds))
 	grpcDataSvc := grpc.NewPrivateDataGRPCServer(dataService)
 	pb.RegisterPrivateDataServiceServer(grpcServer, grpcDataSvc)
 

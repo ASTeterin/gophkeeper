@@ -3,13 +3,10 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"log"
-
+	pb "github.com/ASTeterin/gophkeeper/api"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	pb "github.com/ASTeterin/gophkeeper/api"
+	"google.golang.org/grpc/credentials"
 )
 
 type Client struct {
@@ -20,8 +17,12 @@ type Client struct {
 }
 
 func NewClient(address string) (*Client, error) {
-	log.Printf("Attempting to connect to gRPC at: %s", address)
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	creds, err := credentials.NewClientTLSFromFile("./cert/cert.pem", "localhost")
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate credentials: %w", err)
+	}
+
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
