@@ -110,16 +110,16 @@ type mockUserRepository struct {
 	user []model.User
 }
 
-func (m mockUserRepository) NextUserID() (uuid.UUID, error) {
+func (m *mockUserRepository) NextUserID() (uuid.UUID, error) {
 	return uuid.New(), nil
 }
 
-func (m mockUserRepository) Store(_ context.Context, user model.User) error {
+func (m *mockUserRepository) Store(_ context.Context, user model.User) error {
 	m.user = append(m.user, user)
 	return nil
 }
 
-func (m mockUserRepository) GetByLogin(ctx context.Context, login string) (*model.User, error) {
+func (m *mockUserRepository) GetByLogin(ctx context.Context, login string) (*model.User, error) {
 	for _, user := range m.user {
 		if user.Login == login {
 			return &user, nil

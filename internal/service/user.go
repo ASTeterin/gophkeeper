@@ -15,7 +15,7 @@ var (
 )
 
 type UserService interface {
-	Register(ctx context.Context, originalURL, userID string) (*string, error)
+	Register(ctx context.Context, login, password string) (*string, error)
 	Authenticate(ctx context.Context, login, password string) (*string, error)
 }
 
