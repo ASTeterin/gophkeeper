@@ -3,10 +3,12 @@ package grpc
 import (
 	"context"
 	"fmt"
-	pb "github.com/ASTeterin/gophkeeper/api"
+
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	pb "github.com/ASTeterin/gophkeeper/api"
 )
 
 type Client struct {
