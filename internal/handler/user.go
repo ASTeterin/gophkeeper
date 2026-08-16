@@ -19,12 +19,12 @@ type User struct {
 	PassHash string `json:"password" binding:"required"`
 }
 
-type Handler interface {
+type UserHandler interface {
 	Register(c *gin.Context)
 	Authenticate(c *gin.Context)
 }
 
-func NewUserHandler(userService service.UserService) Handler {
+func NewUserHandler(userService service.UserService) UserHandler {
 	return &handler{
 		userService: userService,
 	}

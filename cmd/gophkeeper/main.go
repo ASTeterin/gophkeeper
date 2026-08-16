@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -55,30 +56,7 @@ func main() {
 	uh := handler.NewUserHandler(userService)
 	dh := handler.NewPrivateDataHandler(dataService)
 
-	r := gin.Default()
-	r.Use(cookie.CookieHandler(config.SigningKey))
-
-	r.POST("/api/user/register", func(c *gin.Context) {
-		uh.Register(c)
-	})
-	r.POST("/api/user/login", func(c *gin.Context) {
-		uh.Authenticate(c)
-	})
-	r.POST("/api/data", func(c *gin.Context) {
-		dh.Store(c)
-	})
-	r.GET("/api/data", func(c *gin.Context) {
-		dh.GetAll(c)
-	})
-	r.GET("/api/data/:key", func(c *gin.Context) {
-		dh.GetByKey(c)
-	})
-	r.DELETE("/api/data/:id", func(c *gin.Context) {
-		dh.Delete(c)
-	})
-	r.POST("/api/data/sync", func(c *gin.Context) {
-		dh.ReplaceAll(c)
-	})
+	r := initRouter(uh, dh, config.SigningKey)
 
 	creds, err := credentials.NewServerTLSFromFile(config.CertDir+"cert.pem", config.CertDir+"key.pem")
 	if err != nil {
@@ -165,4 +143,41 @@ func migrateDB(conn *sql.DB) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func LimitBodySize(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		c.Next()
+	}
+}
+
+func initRouter(uh handler.UserHandler, dh handler.PrivateDataHandler, sk string) *gin.Engine {
+	r := gin.Default()
+	r.Use(cookie.CookieHandler(sk))
+	r.Use(LimitBodySize(10 * 1024 * 1024))
+
+	r.POST("/api/user/register", func(c *gin.Context) {
+		uh.Register(c)
+	})
+	r.POST("/api/user/login", func(c *gin.Context) {
+		uh.Authenticate(c)
+	})
+	r.POST("/api/data", func(c *gin.Context) {
+		dh.Store(c)
+	})
+	r.GET("/api/data", func(c *gin.Context) {
+		dh.GetAll(c)
+	})
+	r.GET("/api/data/:key", func(c *gin.Context) {
+		dh.GetByKey(c)
+	})
+	r.DELETE("/api/data/:id", func(c *gin.Context) {
+		dh.Delete(c)
+	})
+	r.POST("/api/data/sync", func(c *gin.Context) {
+		dh.ReplaceAll(c)
+	})
+
+	return r
 }
