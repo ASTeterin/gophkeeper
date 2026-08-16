@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"google.golang.org/grpc/credentials"
@@ -35,18 +36,30 @@ import (
 
 func main() {
 	config := appConfig.ParseFlags()
-	var dbConn *sql.DB
+
 	dbConn, err := sql.Open("pgx", config.DBConnStr)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer dbConn.Close()
-	migrateDB(dbConn)
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	g, ctx := errgroup.WithContext(ctx)
+	if err := migrateDB(dbConn); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-signalChan
+		log.Println("Received shutdown signal...")
+		cancel()
+	}()
 
 	userRepo := db.NewUserRepository(dbConn)
 	dataRepo := db.NewPrivateDataRepo(dbConn)
@@ -77,19 +90,31 @@ func main() {
 	grpcAddr := net.JoinHostPort(host, config.GRPCAddr)
 
 	g.Go(func() error {
-		log.Printf("HTTP server listening on %s", config.AppAddr)
 		httpLis, err := net.Listen("tcp", config.AppAddr)
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", config.AppAddr, err)
 		}
+		log.Printf("HTTP server listening on %s", config.AppAddr)
+
+		srv := &http.Server{
+			Handler: r,
+		}
 
 		go func() {
-			if err := r.RunListener(httpLis); err != nil {
+			if err := srv.Serve(httpLis); err != nil && err != http.ErrServerClosed {
 				log.Printf("HTTP server error: %v", err)
 			}
 		}()
-
 		<-ctx.Done()
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("HTTP server shutdown error: %v", err)
+			return err
+		}
+		log.Println("HTTP server stopped gracefully")
 		return nil
 	})
 
@@ -105,47 +130,53 @@ func main() {
 				log.Printf("gRPC server error: %v", err)
 			}
 		}()
+
 		<-ctx.Done()
 		grpcServer.GracefulStop()
+		log.Println("gRPC server stopped gracefully")
 		return nil
 	})
 
 	if err := g.Wait(); err != nil {
 		log.Fatalf("Servers failed: %v", err)
 	}
+
+	log.Println("Server exited successfully")
 }
 
-func migrateDB(conn *sql.DB) {
+func migrateDB(conn *sql.DB) error {
 	driver, err := postgres.WithInstance(conn, &postgres.Config{
 		SchemaName: "public",
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	exePath, _ := os.Executable()
 	exeDir := filepath.Dir(exePath)
 	migrationsPath := filepath.Join(exeDir, "..", "..", "migrations")
+
 	if _, err := os.Stat(migrationsPath); os.IsNotExist(err) {
-		log.Fatalf("Migrations directory not found: %s", migrationsPath)
+		return fmt.Errorf("Migrations directory not found: %s", migrationsPath)
 	}
+
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
 		"postgres",
 		driver,
 	)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
 	err = m.Up()
-	if err != nil {
-		if !errors.Is(err, migrate.ErrNoChange) {
-			log.Fatal(err)
-		}
+	if err != nil && err != migrate.ErrNoChange {
+		return err
 	}
+	return nil
 }
 
-func LimitBodySize(maxBytes int64) gin.HandlerFunc {
+func limitBodySize(maxBytes int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 		c.Next()
@@ -155,7 +186,7 @@ func LimitBodySize(maxBytes int64) gin.HandlerFunc {
 func initRouter(uh handler.UserHandler, dh handler.PrivateDataHandler, sk string) *gin.Engine {
 	r := gin.Default()
 	r.Use(cookie.CookieHandler(sk))
-	r.Use(LimitBodySize(10 * 1024 * 1024))
+	r.Use(limitBodySize(10 * 1024 * 1024))
 
 	r.POST("/api/user/register", func(c *gin.Context) {
 		uh.Register(c)

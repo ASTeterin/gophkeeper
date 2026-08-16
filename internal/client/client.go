@@ -12,10 +12,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ASTeterin/gophkeeper/internal/config"
-	"github.com/ASTeterin/gophkeeper/internal/grpc"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/pbkdf2"
+
+	"github.com/ASTeterin/gophkeeper/internal/config"
+	"github.com/ASTeterin/gophkeeper/internal/grpc"
 )
 
 var (
