@@ -3,13 +3,21 @@ package client
 import (
 	"bufio"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
+	"golang.org/x/crypto/chacha20poly1305"
+	"io"
 	"net"
 	"os"
 	"strings"
 
 	"github.com/ASTeterin/gophkeeper/internal/config"
 	"github.com/ASTeterin/gophkeeper/internal/grpc"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 var (
@@ -17,22 +25,106 @@ var (
 	buildDate = "unknown"
 )
 
+const (
+	keySize    = 32 // AES-256
+	iterations = 100000
+)
+
 type App struct {
-	config   *config.Config
-	client   *grpc.Client
-	store    *LocalStore
-	isOnline bool
+	config    *config.Config
+	client    *grpc.Client
+	store     *LocalStore
+	isOnline  bool
+	masterKey []byte
 }
 
 func New(cfg *config.Config) *App {
 	return &App{
 		config: cfg,
-		store:  NewLocalStore("./local_store.json"), // Путь к локальному файлу
+		store:  NewLocalStore("./local_store.json"),
 	}
 }
 
+func deriveKey(password string) []byte {
+	salt := sha256.Sum256([]byte(password))
+	return pbkdf2.Key([]byte(password), salt[:], iterations, keySize, sha256.New)
+}
+
+func (a *App) promptMasterPassword() error {
+	fmt.Print("Enter master password for encryption: ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return fmt.Errorf("failed to read password")
+	}
+	password := scanner.Text()
+
+	if password == "" {
+		return fmt.Errorf("password cannot be empty")
+	}
+
+	a.masterKey = deriveKey(password)
+	return nil
+}
+
+func (a *App) encryptData(plaintext []byte) (string, error) {
+	if a.masterKey == nil {
+		return "", fmt.Errorf("master key not initialized")
+	}
+
+	block, err := aes.NewCipher(a.masterKey)
+	if err != nil {
+		return "", err
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	ciphertext := aesGCM.Seal(nonce, nonce, plaintext, nil)
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func (a *App) decryptData(ciphertext string) ([]byte, error) {
+	if a.masterKey == nil {
+		return nil, fmt.Errorf("master key not initialized")
+	}
+
+	encoded, err := base64.StdEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	cipher, err := chacha20poly1305.New(a.masterKey)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := chacha20poly1305.NonceSize
+	if len(encoded) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, encryptedBytes := encoded[:nonceSize], encoded[nonceSize:]
+
+	plaintext, err := cipher.Open(nil, nonce, encryptedBytes, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plaintext, nil
+}
+
 func (a *App) Run() error {
-	// Пытаемся подключиться к серверу
+	if err := a.promptMasterPassword(); err != nil {
+		return fmt.Errorf("password error: %v", err)
+	}
+
 	host, _, err := net.SplitHostPort(a.config.AppAddr)
 	if err != nil {
 		host = ""
@@ -138,11 +230,17 @@ func (a *App) handleLogin(login, pass string) {
 }
 
 func (a *App) handleAdd(key, data string) {
-	a.store.Add(key, "", []byte(data))
+	encryptedData, err := a.encryptData([]byte(data))
+	if err != nil {
+		fmt.Printf("Encryption error: %v\n", err)
+		return
+	}
+
+	a.store.Add(key, "", []byte(encryptedData))
 	fmt.Printf("Data added for key: %s\n", key)
 
 	if a.isOnline {
-		err := a.client.AddData(context.Background(), key, "", []byte(data))
+		err := a.client.AddData(context.Background(), key, "", []byte(encryptedData))
 		if err != nil {
 			fmt.Printf("Sync error: %v\n", err)
 		}
@@ -155,7 +253,14 @@ func (a *App) handleGet(key string) {
 		fmt.Println("No data found.")
 		return
 	}
-	fmt.Printf("Data for key %s: %s\n", key, string(item.Data))
+
+	decryptedData, err := a.decryptData(string(item.Data))
+	if err != nil {
+		fmt.Printf("Decryption error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Data for key %s: %s\n", key, string(decryptedData))
 }
 
 func (a *App) handleList() {
