@@ -161,7 +161,7 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 const (
 	PrivateDataService_Store_FullMethodName      = "/private_data.PrivateDataService/Store"
 	PrivateDataService_GetByKey_FullMethodName   = "/private_data.PrivateDataService/GetByKey"
-	PrivateDataService_GetAllKeys_FullMethodName = "/private_data.PrivateDataService/GetAllKeys"
+	PrivateDataService_GetAll_FullMethodName     = "/private_data.PrivateDataService/GetAll"
 	PrivateDataService_Delete_FullMethodName     = "/private_data.PrivateDataService/Delete"
 	PrivateDataService_ReplaceAll_FullMethodName = "/private_data.PrivateDataService/ReplaceAll"
 )
@@ -172,7 +172,7 @@ const (
 type PrivateDataServiceClient interface {
 	Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error)
 	GetByKey(ctx context.Context, in *GetByKeyRequest, opts ...grpc.CallOption) (*PrivateData, error)
-	GetAllKeys(ctx context.Context, in *GetAllKeysRequest, opts ...grpc.CallOption) (*DataInfoList, error)
+	GetAll(ctx context.Context, in *GetAllRequest, opts ...grpc.CallOption) (*PrivateDataList, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	ReplaceAll(ctx context.Context, in *ReplaceAllRequest, opts ...grpc.CallOption) (*ReplaceAllResponse, error)
 }
@@ -205,10 +205,10 @@ func (c *privateDataServiceClient) GetByKey(ctx context.Context, in *GetByKeyReq
 	return out, nil
 }
 
-func (c *privateDataServiceClient) GetAllKeys(ctx context.Context, in *GetAllKeysRequest, opts ...grpc.CallOption) (*DataInfoList, error) {
+func (c *privateDataServiceClient) GetAll(ctx context.Context, in *GetAllRequest, opts ...grpc.CallOption) (*PrivateDataList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DataInfoList)
-	err := c.cc.Invoke(ctx, PrivateDataService_GetAllKeys_FullMethodName, in, out, cOpts...)
+	out := new(PrivateDataList)
+	err := c.cc.Invoke(ctx, PrivateDataService_GetAll_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (c *privateDataServiceClient) ReplaceAll(ctx context.Context, in *ReplaceAl
 type PrivateDataServiceServer interface {
 	Store(context.Context, *StoreRequest) (*StoreResponse, error)
 	GetByKey(context.Context, *GetByKeyRequest) (*PrivateData, error)
-	GetAllKeys(context.Context, *GetAllKeysRequest) (*DataInfoList, error)
+	GetAll(context.Context, *GetAllRequest) (*PrivateDataList, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	ReplaceAll(context.Context, *ReplaceAllRequest) (*ReplaceAllResponse, error)
 	mustEmbedUnimplementedPrivateDataServiceServer()
@@ -260,8 +260,8 @@ func (UnimplementedPrivateDataServiceServer) Store(context.Context, *StoreReques
 func (UnimplementedPrivateDataServiceServer) GetByKey(context.Context, *GetByKeyRequest) (*PrivateData, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetByKey not implemented")
 }
-func (UnimplementedPrivateDataServiceServer) GetAllKeys(context.Context, *GetAllKeysRequest) (*DataInfoList, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAllKeys not implemented")
+func (UnimplementedPrivateDataServiceServer) GetAll(context.Context, *GetAllRequest) (*PrivateDataList, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAll not implemented")
 }
 func (UnimplementedPrivateDataServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Delete not implemented")
@@ -326,20 +326,20 @@ func _PrivateDataService_GetByKey_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PrivateDataService_GetAllKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAllKeysRequest)
+func _PrivateDataService_GetAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PrivateDataServiceServer).GetAllKeys(ctx, in)
+		return srv.(PrivateDataServiceServer).GetAll(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PrivateDataService_GetAllKeys_FullMethodName,
+		FullMethod: PrivateDataService_GetAll_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PrivateDataServiceServer).GetAllKeys(ctx, req.(*GetAllKeysRequest))
+		return srv.(PrivateDataServiceServer).GetAll(ctx, req.(*GetAllRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -396,8 +396,8 @@ var PrivateDataService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PrivateDataService_GetByKey_Handler,
 		},
 		{
-			MethodName: "GetAllKeys",
-			Handler:    _PrivateDataService_GetAllKeys_Handler,
+			MethodName: "GetAll",
+			Handler:    _PrivateDataService_GetAll_Handler,
 		},
 		{
 			MethodName: "Delete",

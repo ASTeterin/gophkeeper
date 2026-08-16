@@ -12,28 +12,42 @@ import (
 	"github.com/ASTeterin/gophkeeper/internal/grpc"
 )
 
+var (
+	version   = "dev"
+	buildDate = "unknown"
+)
+
 type App struct {
-	config *config.Config
-	client *grpc.Client
+	config   *config.Config
+	client   *grpc.Client
+	store    *LocalStore
+	isOnline bool
 }
 
 func New(cfg *config.Config) *App {
-	return &App{config: cfg}
+	return &App{
+		config: cfg,
+		store:  NewLocalStore("./local_store.json"), // Путь к локальному файлу
+	}
 }
 
 func (a *App) Run() error {
+	// Пытаемся подключиться к серверу
 	host, _, err := net.SplitHostPort(a.config.AppAddr)
 	if err != nil {
 		host = ""
 	}
 	addr := net.JoinHostPort(host, a.config.GRPCAddr)
-	fmt.Println(addr)
+
 	cl, err := grpc.NewClient(addr)
 	if err != nil {
-		return fmt.Errorf("connection failed: %w", err)
+		fmt.Println("Warning: Server unavailable. Working in offline mode.")
+		a.isOnline = false
+	} else {
+		a.client = cl
+		defer cl.Close()
+		a.isOnline = true
 	}
-	defer cl.Close()
-	a.client = cl
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Gophkeeper Client. Type 'help' for commands.")
@@ -52,18 +66,22 @@ func (a *App) Run() error {
 		switch cmd {
 		case "help":
 			a.printHelp()
-		case "register":
-			if len(args) < 3 {
-				fmt.Println("Usage: register <login> <password>")
+		case "version":
+			fmt.Printf("Version: %s\nBuild Date: %s\n", version, buildDate)
+		case "register", "login":
+			if !a.isOnline {
+				fmt.Println("Command requires server connection.")
 				continue
 			}
-			a.handleRegister(args[1], args[2])
-		case "login":
 			if len(args) < 3 {
-				fmt.Println("Usage: login <login> <password>")
+				fmt.Println("Usage: <command> <login> <password>")
 				continue
 			}
-			a.handleLogin(args[1], args[2])
+			if cmd == "register" {
+				a.handleRegister(args[1], args[2])
+			} else {
+				a.handleLogin(args[1], args[2])
+			}
 		case "add":
 			if len(args) < 3 {
 				fmt.Println("Usage: add <key> <data>")
@@ -91,12 +109,13 @@ func (a *App) Run() error {
 
 func (a *App) printHelp() {
 	fmt.Println("Commands:")
-	fmt.Println("  register <login> <pass>  Register a new user")
-	fmt.Println("  login <login> <pass>     Login existing user")
-	fmt.Println("  add <key> <data>         Add private data")
-	fmt.Println("  get <key> 		        Get private data by key")
-	fmt.Println("  list                     List all data keys")
-	fmt.Println("  sync                     Sync data (demo: clears and adds sample)")
+	fmt.Println("  register <login> <pass>  Register a new user (online)")
+	fmt.Println("  login <login> <pass>     Login existing user (online)")
+	fmt.Println("  add <key> <data>         Add data (offline/online)")
+	fmt.Println("  get <key>                Get data (offline/online)")
+	fmt.Println("  list                     List all data (offline/online)")
+	fmt.Println("  sync                     Sync with server (online)")
+	fmt.Println("  version                  Show version")
 	fmt.Println("  exit                     Exit")
 }
 
@@ -119,51 +138,58 @@ func (a *App) handleLogin(login, pass string) {
 }
 
 func (a *App) handleAdd(key, data string) {
-	err := a.client.AddData(context.Background(), key, "", []byte(data))
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	} else {
-		fmt.Printf("Data added for key: %s\n", key)
+	a.store.Add(key, "", []byte(data))
+	fmt.Printf("Data added for key: %s\n", key)
+
+	if a.isOnline {
+		err := a.client.AddData(context.Background(), key, "", []byte(data))
+		if err != nil {
+			fmt.Printf("Sync error: %v\n", err)
+		}
 	}
 }
 
 func (a *App) handleGet(key string) {
-	data, err := a.client.GetByKey(context.Background(), key)
-	fmt.Println("!!!!!!!!", data)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	if data == nil {
+	item, ok := a.store.Get(key)
+	if !ok {
 		fmt.Println("No data found.")
 		return
 	}
-	fmt.Printf("Data for key %s: %s\n", key, string(data.Data))
+	fmt.Printf("Data for key %s: %s\n", key, string(item.Data))
 }
 
 func (a *App) handleList() {
-	items, err := a.client.GetAllData(context.Background())
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return
-	}
+	items := a.store.List()
 	if len(items) == 0 {
 		fmt.Println("No data found.")
 		return
 	}
 	for _, item := range items {
-		fmt.Printf("Key: %s | Desc: %s\n", item.DataKey, item.Description)
+		fmt.Printf("Key: %s | Desc: %s\n", item.Key, item.Description)
 	}
 }
 
 func (a *App) handleSync() {
-	// Demo sync: replaces all data with a single item
-	items := []grpc.SyncItem{
-		{Key: "synced_key", Description: "Synced via CLI", Data: []byte("synced_value")},
+	if !a.isOnline {
+		fmt.Println("Sync requires server connection.")
+		return
 	}
-	err := a.client.SyncData(context.Background(), items)
+
+	items, err := a.client.GetAllData(context.Background())
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	} else {
-		fmt.Println("Data synced successfully.")
+		fmt.Printf("Sync error: %v\n", err)
+		return
 	}
+
+	localItems := make([]*Item, len(items))
+	for i, item := range items {
+		localItems[i] = &Item{
+			Key:         item.DataKey,
+			Description: item.Description,
+			Data:        item.Data,
+			Dirty:       false,
+		}
+	}
+	a.store.Sync(localItems)
+	fmt.Println("Sync completed successfully.")
 }

@@ -12,7 +12,7 @@ service UserService {
 service PrivateDataService {
   rpc Store (StoreRequest) returns (StoreResponse);
   rpc GetByKey (GetByKeyRequest) returns (PrivateData);
-  rpc GetAllKeys (GetAllKeysRequest) returns (DataInfoList);
+  rpc GetAll (GetAllRequest) returns (PrivateDataList);
   rpc Delete (DeleteRequest) returns (DeleteResponse);
   rpc ReplaceAll (ReplaceAllRequest) returns (ReplaceAllResponse);
 }
@@ -55,12 +55,12 @@ message GetByKeyRequest {
   string key = 2;
 }
 
-message GetAllKeysRequest {
+message GetAllRequest {
   string user_id = 1;
 }
 
-message DataInfoList {
-  repeated DataInfo items = 1;
+message PrivateDataList {
+  repeated PrivateData items = 1;
 }
 
 message DeleteRequest {
@@ -76,11 +76,6 @@ message DataItem {
   string data_key = 1;
   string description = 2;
   bytes data = 3;
-}
-
-message DataInfo {
-  string data_key = 1;
-  string description = 2;
 }
 
 message StoreResponse {}

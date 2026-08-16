@@ -57,7 +57,7 @@ func (s *privateDataGRPCServer) GetByKey(ctx context.Context, req *pb.GetByKeyRe
 	return toProtoPrivateData(result), nil
 }
 
-func (s *privateDataGRPCServer) GetAllKeys(ctx context.Context, req *pb.GetAllKeysRequest) (*pb.DataInfoList, error) {
+func (s *privateDataGRPCServer) GetAll(ctx context.Context, req *pb.GetAllRequest) (*pb.PrivateDataList, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
@@ -68,12 +68,12 @@ func (s *privateDataGRPCServer) GetAllKeys(ctx context.Context, req *pb.GetAllKe
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	items := make([]*pb.DataInfo, 0, len(results))
+	items := make([]*pb.PrivateData, 0, len(results))
 	for _, item := range results {
-		items = append(items, toProtoDataInfo(item))
+		items = append(items, toProtoPrivateData(item))
 	}
 
-	return &pb.DataInfoList{Items: items}, nil
+	return &pb.PrivateDataList{Items: items}, nil
 }
 
 func (s *privateDataGRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
@@ -118,12 +118,5 @@ func toProtoPrivateData(data *model.PrivateData) *pb.PrivateData {
 		DataKey:     data.DataKey,
 		Description: data.Description,
 		Data:        data.Data,
-	}
-}
-
-func toProtoDataInfo(data *model.PrivateData) *pb.DataInfo {
-	return &pb.DataInfo{
-		DataKey:     data.DataKey,
-		Description: data.Description,
 	}
 }
