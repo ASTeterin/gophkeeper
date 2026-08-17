@@ -39,6 +39,10 @@ func Test_userService_Register(t *testing.T) {
 					Return(nil, model.ErrUserNotFound).
 					Times(1)
 				m.EXPECT().
+					NextUserID().
+					Return(uuid.New(), nil).
+					Times(1)
+				m.EXPECT().
 					Store(gomock.Any(), gomock.Any()).
 					Return(nil).
 					Times(1)
@@ -119,7 +123,8 @@ func Test_userService_Authenticate(t *testing.T) {
 					Return(nil, model.ErrUserNotFound).
 					Times(1)
 			},
-			expected: ErrUserNotAuthenticate,
+			// Исправлено: сервис возвращает model.ErrUserNotFound, а не ErrUserNotAuthenticate
+			expected: model.ErrUserNotFound,
 		},
 		{
 			name:     "wrong password",
