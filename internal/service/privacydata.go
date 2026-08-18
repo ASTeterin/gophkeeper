@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/google/uuid"
@@ -42,7 +41,7 @@ func (s *privateDataService) AddData(ctx context.Context, userID uuid.UUID, key 
 	if err == nil {
 		return nil, ErrKeyExists
 	}
-	if !errors.Is(err, sql.ErrNoRows) {
+	if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
 

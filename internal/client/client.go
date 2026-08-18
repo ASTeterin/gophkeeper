@@ -36,7 +36,7 @@ type App struct {
 	client         *grpc.Client
 	store          *LocalStore
 	isOnline       bool
-	masterPassword []byte // Храним пароль в памяти
+	masterPassword []byte
 }
 
 func New(cfg *config.Config) *App {
@@ -68,9 +68,9 @@ func (a *App) Run() error {
 	addr := net.JoinHostPort(host, a.config.GRPCAddr)
 
 	certPath := filepath.Join(a.config.CertDir, "cert.pem")
-	cl, err := grpc.NewClient(addr, certPath, "localhost")
+	cl, err := grpc.NewClient(addr, certPath, a.config.ServerName)
 	if err != nil {
-		fmt.Println("Warning: Server unavailable. Working in offline mode.")
+		fmt.Printf("Warning: Server unavailable. Working in offline mode. Error: %v\n", err)
 		a.isOnline = false
 	} else {
 		a.client = cl
