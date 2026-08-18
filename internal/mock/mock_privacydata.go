@@ -42,20 +42,6 @@ func (m *MockPrivateDataRepository) EXPECT() *MockPrivateDataRepositoryMockRecor
 	return m.recorder
 }
 
-// BatchStore mocks base method.
-func (m *MockPrivateDataRepository) BatchStore(ctx context.Context, data []*model.PrivateData) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchStore", ctx, data)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// BatchStore indicates an expected call of BatchStore.
-func (mr *MockPrivateDataRepositoryMockRecorder) BatchStore(ctx, data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchStore", reflect.TypeOf((*MockPrivateDataRepository)(nil).BatchStore), ctx, data)
-}
-
 // Delete mocks base method.
 func (m *MockPrivateDataRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
@@ -68,20 +54,6 @@ func (m *MockPrivateDataRepository) Delete(ctx context.Context, id uuid.UUID) er
 func (mr *MockPrivateDataRepositoryMockRecorder) Delete(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockPrivateDataRepository)(nil).Delete), ctx, id)
-}
-
-// DeleteByUserID mocks base method.
-func (m *MockPrivateDataRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteByUserID", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteByUserID indicates an expected call of DeleteByUserID.
-func (mr *MockPrivateDataRepositoryMockRecorder) DeleteByUserID(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByUserID", reflect.TypeOf((*MockPrivateDataRepository)(nil).DeleteByUserID), ctx, userID)
 }
 
 // GetByUserAndKey mocks base method.
