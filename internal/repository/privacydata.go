@@ -25,14 +25,14 @@ func (r *privateDataRepository) Store(ctx context.Context, data *model.PrivateDa
 }
 
 func (r *privateDataRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `UPDATE public.private_data SET deleted_at = NOW() WHERE id = $1`
+	query := `DELETE FROM public.private_data WHERE id = $1`
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return errors.New("record not found or already deleted")
+		return errors.New("record not found")
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (r *privateDataRepository) GetByUserAndKey(ctx context.Context, userID uuid
 }
 
 func (r *privateDataRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
-	query := `DELETE FROM public.private_data WHERE user_id = $1 AND deleted_at IS NULL`
+	query := `DELETE FROM public.private_data WHERE user_id = $1`
 	_, err := r.db.ExecContext(ctx, query, userID)
 	return err
 }
@@ -93,7 +93,7 @@ func (r *privateDataRepository) BatchStore(ctx context.Context, data []*model.Pr
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `INSERT INTO public.private_data (id, user_id, data_key, description, data,) VALUES ($1, $2, $3, $4, $5)`)
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO public.private_data (id, user_id, data_key, description, data) VALUES ($1, $2, $3, $4, $5)`)
 	if err != nil {
 		return err
 	}
