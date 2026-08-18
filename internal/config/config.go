@@ -11,11 +11,13 @@ type Config struct {
 	DBConnStr  string
 	SigningKey string
 	CertDir    string
+	ServerName string
 }
 
 const (
 	defaultSigningKey string = "default_signing_key"
-	defaultCertDir           = "./../../cert/"
+	defaultCertDir    string = "./../../cert/"
+	defaultServerName string = "localhost"
 )
 
 func ParseFlags() Config {
@@ -24,6 +26,7 @@ func ParseFlags() Config {
 	var signingKey = defaultSigningKey
 	var grpcAddr string
 	var certDir = defaultCertDir
+	var serverName = defaultServerName
 
 	flag.StringVar(&appAddr, "a", ":8080", "port to run server")
 	flag.StringVar(&grpcAddr, "g", ":8081", "port to run grpc server")
@@ -52,5 +55,6 @@ func ParseFlags() Config {
 		SigningKey: signingKey,
 		GRPCAddr:   grpcAddr,
 		CertDir:    certDir,
+		ServerName: serverName,
 	}
 }

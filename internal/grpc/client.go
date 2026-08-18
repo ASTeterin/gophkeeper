@@ -18,8 +18,8 @@ type Client struct {
 	currentUserID uuid.UUID
 }
 
-func NewClient(address string) (*Client, error) {
-	creds, err := credentials.NewClientTLSFromFile("./cert/cert.pem", "localhost")
+func NewClient(address string, certPath string, serverName string) (*Client, error) {
+	creds, err := credentials.NewClientTLSFromFile(certPath, serverName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate credentials: %w", err)
 	}

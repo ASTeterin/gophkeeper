@@ -75,8 +75,8 @@ func setCookie(c *gin.Context, signingKey string) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	userID := rawUserID.(string)
-	if userID == "" {
+	userID, ok := rawUserID.(string)
+	if !ok || userID == "" {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}

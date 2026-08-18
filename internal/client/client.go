@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ASTeterin/gophkeeper/internal/config"
@@ -66,7 +67,8 @@ func (a *App) Run() error {
 	}
 	addr := net.JoinHostPort(host, a.config.GRPCAddr)
 
-	cl, err := grpc.NewClient(addr)
+	certPath := filepath.Join(a.config.CertDir, "cert.pem")
+	cl, err := grpc.NewClient(addr, certPath, "localhost")
 	if err != nil {
 		fmt.Println("Warning: Server unavailable. Working in offline mode.")
 		a.isOnline = false
