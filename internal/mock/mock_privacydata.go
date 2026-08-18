@@ -42,18 +42,18 @@ func (m *MockPrivateDataRepository) EXPECT() *MockPrivateDataRepositoryMockRecor
 	return m.recorder
 }
 
-// Delete mocks base method.
-func (m *MockPrivateDataRepository) Delete(ctx context.Context, id uuid.UUID) error {
+// DeleteByUserAndKey mocks base method.
+func (m *MockPrivateDataRepository) DeleteByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret := m.ctrl.Call(m, "DeleteByUserAndKey", ctx, userID, dataKey)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Delete indicates an expected call of Delete.
-func (mr *MockPrivateDataRepositoryMockRecorder) Delete(ctx, id any) *gomock.Call {
+// DeleteByUserAndKey indicates an expected call of DeleteByUserAndKey.
+func (mr *MockPrivateDataRepositoryMockRecorder) DeleteByUserAndKey(ctx, userID, dataKey any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockPrivateDataRepository)(nil).Delete), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByUserAndKey", reflect.TypeOf((*MockPrivateDataRepository)(nil).DeleteByUserAndKey), ctx, userID, dataKey)
 }
 
 // GetByUserAndKey mocks base method.

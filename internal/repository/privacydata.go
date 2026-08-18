@@ -4,8 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/ASTeterin/gophkeeper/internal/service"
-
+	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"github.com/google/uuid"
 
 	"github.com/ASTeterin/gophkeeper/internal/model"
@@ -25,15 +24,15 @@ func (r *privateDataRepository) Store(ctx context.Context, data *model.PrivateDa
 	return err
 }
 
-func (r *privateDataRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM public.private_data WHERE id = $1`
-	result, err := r.db.ExecContext(ctx, query, id)
+func (r *privateDataRepository) DeleteByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) error {
+	query := `DELETE FROM public.private_data WHERE user_id = $1 AND data_key = $2`
+	result, err := r.db.ExecContext(ctx, query, userID, dataKey)
 	if err != nil {
 		return err
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return errors.New("record not found")
+		return contracts.ErrNotFound
 	}
 	return nil
 }
@@ -63,7 +62,7 @@ func (r *privateDataRepository) GetByUserAndKey(ctx context.Context, userID uuid
 	err := r.db.QueryRowContext(ctx, query, userID, dataKey).Scan(&p.ID, &p.UserID, &p.DataKey, &p.Description, &p.Data)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, service.ErrNotFound
+			return nil, contracts.ErrNotFound
 		}
 		return nil, err
 	}

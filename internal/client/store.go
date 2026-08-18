@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 )
@@ -74,4 +75,17 @@ func (s *LocalStore) Sync(remoteItems []*Item) {
 		s.data[item.Key] = item
 	}
 	s.save()
+}
+
+func (s *LocalStore) Remove(key string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.data[key]; !ok {
+		return fmt.Errorf("item not found")
+	}
+
+	delete(s.data, key)
+	s.save()
+	return nil
 }

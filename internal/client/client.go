@@ -139,7 +139,12 @@ func (a *App) Run() error {
 				}
 				a.handleGet(args[1])
 			}
-
+		case "rm":
+			if len(args) < 2 {
+				fmt.Println("Usage: rm <key>")
+				continue
+			}
+			a.handleRemove(args[1])
 		case "list":
 			a.handleList()
 		case "sync":
@@ -159,6 +164,7 @@ func (a *App) printHelp() {
 	fmt.Println("  login <login>            Login existing user (online)")
 	fmt.Println("  add <key> <data>         Add data (requires login)")
 	fmt.Println("  get <key>                Get data (requires login)")
+	fmt.Println("  rm <key>                 Remove data (requires login)")
 	fmt.Println("  list                     List all data (offline/online)")
 	fmt.Println("  sync                     Sync with server (online)")
 	fmt.Println("  version                  Show version")
@@ -267,6 +273,28 @@ func (a *App) handleSync() {
 	}
 	a.store.Sync(localItems)
 	fmt.Println("Sync completed successfully.")
+}
+
+func (a *App) handleRemove(key string) {
+	_, ok := a.store.Get(key)
+	if !ok {
+		fmt.Println("No data found for key:", key)
+		return
+	}
+
+	if err := a.store.Remove(key); err != nil {
+		fmt.Printf("Error deleting local data: %v\n", err)
+		return
+	}
+
+	if a.isOnline {
+		err := a.client.Delete(context.Background(), key)
+		if err != nil {
+			fmt.Printf("Sync error (server delete): %v\n", err)
+		}
+	}
+
+	fmt.Printf("Data removed for key: %s\n", key)
 }
 
 func (a *App) encryptData(plaintext []byte) (string, error) {

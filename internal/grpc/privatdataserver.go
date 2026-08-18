@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 
 	"github.com/ASTeterin/gophkeeper/internal/model"
 
@@ -11,15 +12,14 @@ import (
 	"google.golang.org/grpc/status"
 
 	pb "github.com/ASTeterin/gophkeeper/api"
-	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
 type privateDataGRPCServer struct {
 	pb.UnimplementedPrivateDataServiceServer
-	service service.PrivateDataService
+	service contracts.PrivateDataService
 }
 
-func NewPrivateDataGRPCServer(svc service.PrivateDataService) pb.PrivateDataServiceServer {
+func NewPrivateDataGRPCServer(svc contracts.PrivateDataService) pb.PrivateDataServiceServer {
 	return &privateDataGRPCServer{service: svc}
 }
 
@@ -31,7 +31,7 @@ func (s *privateDataGRPCServer) Store(ctx context.Context, req *pb.StoreRequest)
 
 	_, err = s.service.AddData(ctx, userID, req.DataKey, req.Description, req.Data)
 	if err != nil {
-		if errors.Is(err, service.ErrKeyExists) {
+		if errors.Is(err, contracts.ErrKeyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
 		return nil, status.Error(codes.Internal, err.Error())
@@ -48,7 +48,7 @@ func (s *privateDataGRPCServer) GetByKey(ctx context.Context, req *pb.GetByKeyRe
 
 	result, err := s.service.GetDataByKey(ctx, userID, req.Key)
 	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, contracts.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, status.Error(codes.Internal, err.Error())
@@ -77,12 +77,15 @@ func (s *privateDataGRPCServer) GetAll(ctx context.Context, req *pb.GetAllReques
 }
 
 func (s *privateDataGRPCServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
-	id, err := uuid.Parse(req.Id)
+	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid id format")
+		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
 	}
 
-	if err := s.service.DeleteData(ctx, id); err != nil {
+	if err = s.service.DeleteData(ctx, userID, req.Key); err != nil {
+		if errors.Is(err, contracts.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -95,9 +98,9 @@ func (s *privateDataGRPCServer) ReplaceAll(ctx context.Context, req *pb.ReplaceA
 		return nil, status.Error(codes.InvalidArgument, "invalid user id format")
 	}
 
-	items := make([]service.DataItem, 0, len(req.Items))
+	items := make([]contracts.DataItem, 0, len(req.Items))
 	for _, item := range req.Items {
-		items = append(items, service.DataItem{
+		items = append(items, contracts.DataItem{
 			DataKey:     item.DataKey,
 			Description: item.Description,
 			Data:        item.Data,

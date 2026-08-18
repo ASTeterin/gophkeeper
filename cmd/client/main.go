@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	cfg := config.ParseFlags()
+	cfg := config.ParseClientFlags()
 	app := client.New(&cfg)
 
 	if err := app.Run(); err != nil {

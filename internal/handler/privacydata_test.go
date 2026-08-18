@@ -2,8 +2,8 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
+	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,10 +12,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ASTeterin/gophkeeper/internal/cookie"
+	"github.com/ASTeterin/gophkeeper/internal/mock"
 	"github.com/ASTeterin/gophkeeper/internal/model"
-	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
 type requestBody struct {
@@ -24,10 +25,9 @@ type requestBody struct {
 	Data        string `json:"data"`
 }
 
-func setupDataRouter() *gin.Engine {
-	mockSvc := &mockPrivateDataService{
-		data: []*model.PrivateData{},
-	}
+func setupTest(t *testing.T) (*gin.Engine, *mock.MockPrivateDataService) {
+	ctrl := gomock.NewController(t)
+	mockSvc := mock.NewMockPrivateDataService(ctrl)
 	h := NewPrivateDataHandler(mockSvc)
 
 	r := gin.New()
@@ -43,10 +43,10 @@ func setupDataRouter() *gin.Engine {
 	r.POST("/api/data", testAuthMiddleware, h.Store)
 	r.GET("/api/data", testAuthMiddleware, h.GetAll)
 	r.GET("/api/data/:key", testAuthMiddleware, h.GetByKey)
-	r.DELETE("/api/data/:id", testAuthMiddleware, h.Delete)
+	r.DELETE("/api/data/:key", testAuthMiddleware, h.Delete)
 	r.PUT("/api/data", testAuthMiddleware, h.ReplaceAll)
 
-	return r
+	return r, mockSvc
 }
 
 func Test_privateDataHandler_Store(t *testing.T) {
@@ -64,18 +64,23 @@ func Test_privateDataHandler_Store(t *testing.T) {
 			expect: http.StatusCreated,
 		},
 		{
-			name: "invalid json",
-			body: requestBody{
-				DataKey: "",
-				Data:    "",
-			},
+			name:   "invalid json",
+			body:   requestBody{}, // Пустой боди или невалидный JSON
 			expect: http.StatusBadRequest,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupDataRouter()
+			router, mockSvc := setupTest(t)
+
+			if tt.expect == http.StatusCreated {
+				mockSvc.EXPECT().
+					AddData(gomock.Any(), gomock.Any(), tt.body.DataKey, gomock.Any(), gomock.Any()).
+					Return(&model.PrivateData{ID: uuid.New(), DataKey: tt.body.DataKey}, nil).
+					Times(1)
+			}
+
 			jsonBody, _ := json.Marshal(tt.body)
 			req := httptest.NewRequest(http.MethodPost, "/api/data", bytes.NewReader(jsonBody))
 			req.Header.Set("Content-Type", "application/json")
@@ -88,15 +93,25 @@ func Test_privateDataHandler_Store(t *testing.T) {
 }
 
 func Test_privateDataHandler_Store_Duplicate(t *testing.T) {
-	router := setupDataRouter()
+	router, mockSvc := setupTest(t)
 	body := requestBody{DataKey: "gmail", Data: "dGVzdA=="}
 	jsonBody, _ := json.Marshal(body)
+
+	mockSvc.EXPECT().
+		AddData(gomock.Any(), gomock.Any(), "gmail", gomock.Any(), gomock.Any()).
+		Return(&model.PrivateData{ID: uuid.New(), DataKey: "gmail"}, nil).
+		Times(1)
 
 	req1 := httptest.NewRequest(http.MethodPost, "/api/data", bytes.NewReader(jsonBody))
 	req1.Header.Set("Content-Type", "application/json")
 	w1 := httptest.NewRecorder()
 	router.ServeHTTP(w1, req1)
 	assert.Equal(t, http.StatusCreated, w1.Code)
+
+	mockSvc.EXPECT().
+		AddData(gomock.Any(), gomock.Any(), "gmail", gomock.Any(), gomock.Any()).
+		Return(nil, contracts.ErrKeyExists).
+		Times(1)
 
 	req2 := httptest.NewRequest(http.MethodPost, "/api/data", bytes.NewReader(jsonBody))
 	req2.Header.Set("Content-Type", "application/json")
@@ -106,37 +121,41 @@ func Test_privateDataHandler_Store_Duplicate(t *testing.T) {
 }
 
 func Test_privateDataHandler_GetByKey(t *testing.T) {
-	router := setupDataRouter()
-
-	jsonBody, _ := json.Marshal(AddDataRequest{
-		DataKey: "test_key",
-		Data:    "dGF0YQ==",
-	})
-	createReq := httptest.NewRequest(http.MethodPost, "/api/data", bytes.NewReader(jsonBody))
-	createReq.Header.Set("Content-Type", "application/json")
-	createW := httptest.NewRecorder()
-	router.ServeHTTP(createW, createReq)
-	require.Equal(t, http.StatusCreated, createW.Code)
+	router, mockSvc := setupTest(t)
 
 	tests := []struct {
 		name   string
 		key    string
+		setup  func()
 		expect int
 	}{
 		{
-			name:   "success",
-			key:    "test_key",
+			name: "success",
+			key:  "test_key",
+			setup: func() {
+				mockSvc.EXPECT().
+					GetDataByKey(gomock.Any(), gomock.Any(), "test_key").
+					Return(&model.PrivateData{ID: uuid.New(), DataKey: "test_key"}, nil).
+					Times(1)
+			},
 			expect: http.StatusOK,
 		},
 		{
-			name:   "not found",
-			key:    "missing",
+			name: "not found",
+			key:  "missing",
+			setup: func() {
+				mockSvc.EXPECT().
+					GetDataByKey(gomock.Any(), gomock.Any(), "missing").
+					Return(nil, contracts.ErrNotFound).
+					Times(1)
+			},
 			expect: http.StatusNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
 			req := httptest.NewRequest(http.MethodGet, "/api/data/"+tt.key, nil)
 			w := httptest.NewRecorder()
 
@@ -147,7 +166,12 @@ func Test_privateDataHandler_GetByKey(t *testing.T) {
 }
 
 func Test_privateDataHandler_GetAll(t *testing.T) {
-	router := setupDataRouter()
+	router, mockSvc := setupTest(t)
+
+	mockSvc.EXPECT().
+		GetAllData(gomock.Any(), gomock.Any()).
+		Return([]*model.PrivateData{}, nil).
+		Times(1)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/data", nil)
 	w := httptest.NewRecorder()
@@ -162,41 +186,42 @@ func Test_privateDataHandler_GetAll(t *testing.T) {
 }
 
 func Test_privateDataHandler_Delete(t *testing.T) {
-	router := setupDataRouter()
-
-	jsonBody, _ := json.Marshal(AddDataRequest{
-		DataKey: "delete_me",
-		Data:    "ZGF0YQ==",
-	})
-	createReq := httptest.NewRequest(http.MethodPost, "/api/data", bytes.NewReader(jsonBody))
-	createReq.Header.Set("Content-Type", "application/json")
-	createW := httptest.NewRecorder()
-	router.ServeHTTP(createW, createReq)
-	require.Equal(t, http.StatusCreated, createW.Code)
-
-	var created model.PrivateData
-	require.NoError(t, json.Unmarshal(createW.Body.Bytes(), &created))
+	router, mockSvc := setupTest(t)
 
 	tests := []struct {
 		name   string
-		id     string
+		key    string
+		setup  func()
 		expect int
 	}{
 		{
-			name:   "success",
-			id:     created.ID.String(),
+			name: "success",
+			key:  "delete_me",
+			setup: func() {
+				mockSvc.EXPECT().
+					DeleteData(gomock.Any(), gomock.Any(), "delete_me").
+					Return(nil).
+					Times(1)
+			},
 			expect: http.StatusNoContent,
 		},
 		{
-			name:   "invalid id",
-			id:     "not-uuid",
-			expect: http.StatusBadRequest,
+			name: "not found",
+			key:  "missing",
+			setup: func() {
+				mockSvc.EXPECT().
+					DeleteData(gomock.Any(), gomock.Any(), "missing").
+					Return(contracts.ErrNotFound).
+					Times(1)
+			},
+			expect: http.StatusNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodDelete, "/api/data/"+tt.id, nil)
+			tt.setup()
+			req := httptest.NewRequest(http.MethodDelete, "/api/data/"+tt.key, nil)
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
@@ -206,14 +231,19 @@ func Test_privateDataHandler_Delete(t *testing.T) {
 }
 
 func Test_privateDataHandler_ReplaceAll(t *testing.T) {
-	router := setupDataRouter()
+	router, mockSvc := setupTest(t)
 
 	body, _ := json.Marshal(BatchDataRequest{
-		Items: []service.DataItem{
+		Items: []contracts.DataItem{
 			{DataKey: "key1", Data: []byte("data1")},
 			{DataKey: "key2", Data: []byte("data2")},
 		},
 	})
+
+	mockSvc.EXPECT().
+		ReplaceAllData(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		Times(1)
 
 	req := httptest.NewRequest(http.MethodPut, "/api/data", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -221,75 +251,4 @@ func Test_privateDataHandler_ReplaceAll(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-type mockPrivateDataService struct {
-	data []*model.PrivateData
-}
-
-func (m *mockPrivateDataService) AddData(_ context.Context, userID uuid.UUID, key, desc string, data []byte) (*model.PrivateData, error) {
-	for _, d := range m.data {
-		if d.UserID == userID && d.DataKey == key {
-			return nil, service.ErrKeyExists
-		}
-	}
-	item := &model.PrivateData{
-		ID:          uuid.New(),
-		UserID:      userID,
-		DataKey:     key,
-		Description: desc,
-		Data:        data,
-	}
-	m.data = append(m.data, item)
-	return item, nil
-}
-
-func (m *mockPrivateDataService) GetDataByKey(_ context.Context, userID uuid.UUID, key string) (*model.PrivateData, error) {
-	for _, d := range m.data {
-		if d.UserID == userID && d.DataKey == key {
-			return d, nil
-		}
-	}
-	return nil, service.ErrNotFound
-}
-
-func (m *mockPrivateDataService) GetAllData(_ context.Context, userID uuid.UUID) ([]*model.PrivateData, error) {
-	var result []*model.PrivateData
-	for _, d := range m.data {
-		if d.UserID == userID {
-			result = append(result, d)
-		}
-	}
-	return result, nil
-}
-
-func (m *mockPrivateDataService) DeleteData(_ context.Context, id uuid.UUID) error {
-	for i, d := range m.data {
-		if d.ID == id {
-			m.data = append(m.data[:i], m.data[i+1:]...)
-			return nil
-		}
-	}
-	return service.ErrNotFound
-}
-
-func (m *mockPrivateDataService) ReplaceAllData(_ context.Context, userID uuid.UUID, items []service.DataItem) error {
-	var filtered []*model.PrivateData
-	for _, d := range m.data {
-		if d.UserID != userID {
-			filtered = append(filtered, d)
-		}
-	}
-	m.data = filtered
-
-	for _, item := range items {
-		m.data = append(m.data, &model.PrivateData{
-			ID:          uuid.New(),
-			UserID:      userID,
-			DataKey:     item.DataKey,
-			Description: item.Description,
-			Data:        item.Data,
-		})
-	}
-	return nil
 }

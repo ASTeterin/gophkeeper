@@ -16,7 +16,7 @@ type PrivateData struct {
 
 type PrivateDataRepository interface {
 	Store(ctx context.Context, data *PrivateData) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	DeleteByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) error
 	ListByUserID(ctx context.Context, userID uuid.UUID) ([]*PrivateData, error)
 	GetByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) (*PrivateData, error)
 	ReplaceAllData(ctx context.Context, userID uuid.UUID, items []*PrivateData) error

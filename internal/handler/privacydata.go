@@ -3,17 +3,17 @@ package handler
 import (
 	"encoding/base64"
 	"errors"
+	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"github.com/ASTeterin/gophkeeper/internal/cookie"
-	"github.com/ASTeterin/gophkeeper/internal/service"
 )
 
 type privateDataHandler struct {
-	service service.PrivateDataService
+	service contracts.PrivateDataService
 }
 
 // AddDataRequest represents the request body for storing a single private data item.
@@ -25,7 +25,7 @@ type AddDataRequest struct {
 
 // BatchDataRequest represents the request body for replacing all user data.
 type BatchDataRequest struct {
-	Items []service.DataItem `json:"items" binding:"required"`
+	Items []contracts.DataItem `json:"items" binding:"required"`
 }
 
 // PrivateDataHandler defines the HTTP handlers for managing private data.
@@ -38,7 +38,7 @@ type PrivateDataHandler interface {
 }
 
 // NewPrivateDataHandler creates a new instance of the private data handler.
-func NewPrivateDataHandler(svc service.PrivateDataService) PrivateDataHandler {
+func NewPrivateDataHandler(svc contracts.PrivateDataService) PrivateDataHandler {
 	return &privateDataHandler{service: svc}
 }
 
@@ -75,7 +75,7 @@ func (h *privateDataHandler) Store(c *gin.Context) {
 
 	result, err := h.service.AddData(c.Request.Context(), userID, req.DataKey, req.Description, data)
 	if err != nil {
-		if errors.Is(err, service.ErrKeyExists) {
+		if errors.Is(err, contracts.ErrKeyExists) {
 			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "key already exists"})
 			return
 		}
@@ -108,7 +108,7 @@ func (h *privateDataHandler) GetByKey(c *gin.Context) {
 
 	result, err := h.service.GetDataByKey(c.Request.Context(), userID, key)
 	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, contracts.ErrNotFound) {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "not found"})
 			return
 		}
@@ -142,17 +142,31 @@ func (h *privateDataHandler) GetAll(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// Delete removes a private data item by its ID.
+// Delete removes a private data item by its key.
 // Returns 204 No Content on success, 400/500 on error.
 func (h *privateDataHandler) Delete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+	userIDStr := c.GetString(cookie.GetUserKey())
+	if userIDStr == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
 		return
 	}
 
-	if err := h.service.DeleteData(c.Request.Context(), id); err != nil {
+	key := c.Param("key")
+	if key == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "key parameter is required"})
+		return
+	}
+
+	if err := h.service.DeleteData(c.Request.Context(), userID, key); err != nil {
+		if errors.Is(err, contracts.ErrNotFound) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+			return
+		}
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}

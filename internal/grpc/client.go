@@ -104,6 +104,17 @@ func (c *Client) GetByKey(ctx context.Context, key string) (*pb.PrivateData, err
 	return resp, nil
 }
 
+func (c *Client) Delete(ctx context.Context, key string) error {
+	if c.currentUserID == uuid.Nil {
+		return fmt.Errorf("not authenticated")
+	}
+	_, err := c.dataClient.Delete(ctx, &pb.DeleteRequest{
+		UserId: c.currentUserID.String(),
+		Key:    key,
+	})
+	return err
+}
+
 func (c *Client) SyncData(ctx context.Context, items []SyncItem) error {
 	if c.currentUserID == uuid.Nil {
 		return fmt.Errorf("not authenticated")

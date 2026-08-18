@@ -2,7 +2,8 @@ package service
 
 import (
 	"context"
-	"database/sql"
+	"errors"
+	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"testing"
 
 	"github.com/google/uuid"
@@ -36,7 +37,7 @@ func Test_privateDataService_AddData(t *testing.T) {
 			setup: func(m *mock.MockPrivateDataRepository) {
 				m.EXPECT().
 					GetByUserAndKey(gomock.Any(), userID, "new_key").
-					Return(nil, sql.ErrNoRows).
+					Return(nil, contracts.ErrNotFound).
 					Times(1)
 				m.EXPECT().
 					Store(gomock.Any(), gomock.Any()).
@@ -63,7 +64,7 @@ func Test_privateDataService_AddData(t *testing.T) {
 					Return(existingItem, nil).
 					Times(1)
 			},
-			expected: ErrKeyExists,
+			expected: contracts.ErrKeyExists,
 		},
 	}
 
@@ -127,10 +128,10 @@ func Test_privateDataService_GetDataByKey(t *testing.T) {
 			setup: func(m *mock.MockPrivateDataRepository) {
 				m.EXPECT().
 					GetByUserAndKey(gomock.Any(), userID, "missing_key").
-					Return(nil, ErrNotFound).
+					Return(nil, contracts.ErrNotFound).
 					Times(1)
 			},
-			expected: ErrNotFound,
+			expected: contracts.ErrNotFound,
 		},
 	}
 
@@ -188,20 +189,53 @@ func Test_privateDataService_DeleteData(t *testing.T) {
 	defer ctrl.Finish()
 
 	ctx := context.TODO()
-	itemID := uuid.New()
+	userID := uuid.New()
+	key := "test_key"
 
-	mockRepo := mock.NewMockPrivateDataRepository(ctrl)
+	tests := []struct {
+		name     string
+		setup    func(m *mock.MockPrivateDataRepository)
+		expected error
+	}{
+		{
+			name: "success",
+			setup: func(m *mock.MockPrivateDataRepository) {
+				m.EXPECT().
+					DeleteByUserAndKey(gomock.Any(), userID, key).
+					Return(nil).
+					Times(1)
+			},
+			expected: nil,
+		},
+		{
+			name: "not found",
+			setup: func(m *mock.MockPrivateDataRepository) {
+				m.EXPECT().
+					DeleteByUserAndKey(gomock.Any(), userID, key).
+					Return(errors.New("record not found")).
+					Times(1)
+			},
+			expected: errors.New("record not found"),
+		},
+	}
 
-	mockRepo.EXPECT().
-		Delete(gomock.Any(), itemID).
-		Return(nil).
-		Times(1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := mock.NewMockPrivateDataRepository(ctrl)
+			tt.setup(mockRepo)
 
-	s := NewPrivateDataService(mockRepo)
-	err := s.DeleteData(ctx, itemID)
-
-	assert.NoError(t, err)
+			s := NewPrivateDataService(mockRepo)
+			err := s.DeleteData(ctx, userID, key)
+			if tt.expected != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expected.Error(), err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
+
 func Test_privateDataService_ReplaceAllData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -211,7 +245,7 @@ func Test_privateDataService_ReplaceAllData(t *testing.T) {
 
 	mockRepo := mock.NewMockPrivateDataRepository(ctrl)
 
-	items := []DataItem{
+	items := []contracts.DataItem{
 		{DataKey: "new_1", Description: "Desc 1", Data: []byte("1")},
 		{DataKey: "new_2", Description: "Desc 2", Data: []byte("2")},
 	}

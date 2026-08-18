@@ -3,45 +3,27 @@ package service
 import (
 	"context"
 	"errors"
+	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 
 	"github.com/google/uuid"
 
 	"github.com/ASTeterin/gophkeeper/internal/model"
 )
 
-var (
-	ErrKeyExists = errors.New("data key already exists for this user")
-	ErrNotFound  = errors.New("record not found")
-)
-
-type DataItem struct {
-	DataKey     string `json:"data_key"`
-	Description string `json:"description"`
-	Data        []byte `json:"data"`
-}
-
-type PrivateDataService interface {
-	AddData(ctx context.Context, userID uuid.UUID, key string, description string, data []byte) (*model.PrivateData, error)
-	GetDataByKey(ctx context.Context, userID uuid.UUID, key string) (*model.PrivateData, error)
-	GetAllData(ctx context.Context, userID uuid.UUID) ([]*model.PrivateData, error)
-	DeleteData(ctx context.Context, id uuid.UUID) error
-	ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error
-}
-
 type privateDataService struct {
 	repo model.PrivateDataRepository
 }
 
-func NewPrivateDataService(repo model.PrivateDataRepository) PrivateDataService {
+func NewPrivateDataService(repo model.PrivateDataRepository) contracts.PrivateDataService {
 	return &privateDataService{repo: repo}
 }
 
 func (s *privateDataService) AddData(ctx context.Context, userID uuid.UUID, key string, description string, data []byte) (*model.PrivateData, error) {
 	_, err := s.repo.GetByUserAndKey(ctx, userID, key)
 	if err == nil {
-		return nil, ErrKeyExists
+		return nil, contracts.ErrKeyExists
 	}
-	if !errors.Is(err, ErrNotFound) {
+	if !errors.Is(err, contracts.ErrNotFound) {
 		return nil, err
 	}
 
@@ -72,11 +54,11 @@ func (s *privateDataService) GetAllData(ctx context.Context, userID uuid.UUID) (
 	return s.repo.ListByUserID(ctx, userID)
 }
 
-func (s *privateDataService) DeleteData(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+func (s *privateDataService) DeleteData(ctx context.Context, userID uuid.UUID, key string) error {
+	return s.repo.DeleteByUserAndKey(ctx, userID, key)
 }
 
-func (s *privateDataService) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error {
+func (s *privateDataService) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []contracts.DataItem) error {
 	var newItems []*model.PrivateData
 	for _, item := range items {
 		newItems = append(newItems, &model.PrivateData{

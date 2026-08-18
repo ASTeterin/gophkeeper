@@ -203,7 +203,7 @@ func initRouter(uh handler.UserHandler, dh handler.PrivateDataHandler, sk string
 	r.GET("/api/data/:key", func(c *gin.Context) {
 		dh.GetByKey(c)
 	})
-	r.DELETE("/api/data/:id", func(c *gin.Context) {
+	r.DELETE("/api/data/:key", func(c *gin.Context) {
 		dh.Delete(c)
 	})
 	r.POST("/api/data/sync", func(c *gin.Context) {
