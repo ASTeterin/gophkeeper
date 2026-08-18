@@ -102,3 +102,33 @@ func (r *privateDataRepository) BatchStore(ctx context.Context, data []*model.Pr
 
 	return tx.Commit()
 }
+
+func (r *privateDataRepository) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []*model.PrivateData) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM public.private_data WHERE user_id = $1`, userID)
+	if err != nil {
+		return err
+	}
+
+	if len(items) > 0 {
+		stmt, err := tx.PrepareContext(ctx, `INSERT INTO public.private_data (id, user_id, data_key, description, data) VALUES ($1, $2, $3, $4, $5)`)
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		for _, item := range items {
+			_, err := stmt.ExecContext(ctx, item.ID, item.UserID, item.DataKey, item.Description, item.Data)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
+}

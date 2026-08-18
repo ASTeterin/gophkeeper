@@ -114,6 +114,20 @@ func (mr *MockPrivateDataRepositoryMockRecorder) ListByUserID(ctx, userID any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByUserID", reflect.TypeOf((*MockPrivateDataRepository)(nil).ListByUserID), ctx, userID)
 }
 
+// ReplaceAllData mocks base method.
+func (m *MockPrivateDataRepository) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []*model.PrivateData) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReplaceAllData", ctx, userID, items)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReplaceAllData indicates an expected call of ReplaceAllData.
+func (mr *MockPrivateDataRepositoryMockRecorder) ReplaceAllData(ctx, userID, items any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceAllData", reflect.TypeOf((*MockPrivateDataRepository)(nil).ReplaceAllData), ctx, userID, items)
+}
+
 // Store mocks base method.
 func (m *MockPrivateDataRepository) Store(ctx context.Context, data *model.PrivateData) error {
 	m.ctrl.T.Helper()

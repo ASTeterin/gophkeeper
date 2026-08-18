@@ -78,10 +78,6 @@ func (s *privateDataService) DeleteData(ctx context.Context, id uuid.UUID) error
 }
 
 func (s *privateDataService) ReplaceAllData(ctx context.Context, userID uuid.UUID, items []DataItem) error {
-	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
-		return err
-	}
-
 	var newItems []*model.PrivateData
 	for _, item := range items {
 		newItems = append(newItems, &model.PrivateData{
@@ -93,5 +89,5 @@ func (s *privateDataService) ReplaceAllData(ctx context.Context, userID uuid.UUI
 		})
 	}
 
-	return s.repo.BatchStore(ctx, newItems)
+	return s.repo.ReplaceAllData(ctx, userID, newItems)
 }

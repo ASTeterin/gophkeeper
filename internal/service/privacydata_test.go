@@ -202,7 +202,6 @@ func Test_privateDataService_DeleteData(t *testing.T) {
 
 	assert.NoError(t, err)
 }
-
 func Test_privateDataService_ReplaceAllData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -216,12 +215,19 @@ func Test_privateDataService_ReplaceAllData(t *testing.T) {
 		{DataKey: "new_1", Description: "Desc 1", Data: []byte("1")},
 		{DataKey: "new_2", Description: "Desc 2", Data: []byte("2")},
 	}
+
+	expectedItems := []*model.PrivateData{
+		{DataKey: "new_1", Description: "Desc 1", Data: []byte("1")},
+		{DataKey: "new_2", Description: "Desc 2", Data: []byte("2")},
+	}
+
+	for i := range expectedItems {
+		expectedItems[i].ID = uuid.New()
+		expectedItems[i].UserID = userID
+	}
+
 	mockRepo.EXPECT().
-		DeleteByUserID(gomock.Any(), userID).
-		Return(nil).
-		Times(1)
-	mockRepo.EXPECT().
-		BatchStore(gomock.Any(), gomock.Any()).
+		ReplaceAllData(gomock.Any(), userID, gomock.Any()).
 		Return(nil).
 		Times(1)
 
