@@ -13,11 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ASTeterin/gophkeeper/internal/config"
-	"github.com/ASTeterin/gophkeeper/internal/grpc"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/term"
+
+	"github.com/ASTeterin/gophkeeper/internal/config"
+	"github.com/ASTeterin/gophkeeper/internal/grpc"
 )
 
 var (

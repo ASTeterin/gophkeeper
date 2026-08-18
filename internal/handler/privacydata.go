@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/base64"
 	"errors"
-	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/ASTeterin/gophkeeper/internal/contracts"
 	"github.com/ASTeterin/gophkeeper/internal/cookie"
 )
 

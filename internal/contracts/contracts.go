@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ASTeterin/gophkeeper/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/ASTeterin/gophkeeper/internal/model"
 )
 
 var (

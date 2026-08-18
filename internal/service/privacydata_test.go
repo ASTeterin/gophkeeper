@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
+	"github.com/ASTeterin/gophkeeper/internal/contracts"
 	"github.com/ASTeterin/gophkeeper/internal/mock"
 	"github.com/ASTeterin/gophkeeper/internal/model"
 )

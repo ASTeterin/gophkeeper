@@ -3,15 +3,14 @@ package grpc
 import (
 	"context"
 	"errors"
-	contracts "github.com/ASTeterin/gophkeeper/internal/api"
-
-	"github.com/ASTeterin/gophkeeper/internal/model"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	pb "github.com/ASTeterin/gophkeeper/api"
+	"github.com/ASTeterin/gophkeeper/internal/contracts"
+	"github.com/ASTeterin/gophkeeper/internal/model"
 )
 
 type privateDataGRPCServer struct {

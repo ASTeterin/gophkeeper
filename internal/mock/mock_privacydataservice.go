@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	contracts "github.com/ASTeterin/gophkeeper/internal/api"
+	contracts "github.com/ASTeterin/gophkeeper/internal/contracts"
 	model "github.com/ASTeterin/gophkeeper/internal/model"
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"

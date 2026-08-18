@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/ASTeterin/gophkeeper/internal/contracts"
 	"github.com/ASTeterin/gophkeeper/internal/cookie"
 	"github.com/ASTeterin/gophkeeper/internal/mock"
 	"github.com/ASTeterin/gophkeeper/internal/model"

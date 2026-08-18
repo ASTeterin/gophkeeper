@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 	"errors"
-	contracts "github.com/ASTeterin/gophkeeper/internal/api"
 
 	"github.com/google/uuid"
 
+	"github.com/ASTeterin/gophkeeper/internal/contracts"
 	"github.com/ASTeterin/gophkeeper/internal/model"
 )
 
