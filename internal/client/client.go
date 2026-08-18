@@ -12,11 +12,11 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/crypto/chacha20poly1305"
-	"golang.org/x/crypto/pbkdf2"
-
 	"github.com/ASTeterin/gophkeeper/internal/config"
 	"github.com/ASTeterin/gophkeeper/internal/grpc"
+	"golang.org/x/crypto/chacha20poly1305"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/term"
 )
 
 var (
@@ -27,14 +27,15 @@ var (
 const (
 	keySize    = 32
 	iterations = 100000
+	saltSize   = 16
 )
 
 type App struct {
-	config    *config.Config
-	client    *grpc.Client
-	store     *LocalStore
-	isOnline  bool
-	masterKey []byte
+	config         *config.Config
+	client         *grpc.Client
+	store          *LocalStore
+	isOnline       bool
+	masterPassword []byte // Храним пароль в памяти
 }
 
 func New(cfg *config.Config) *App {
@@ -44,9 +45,18 @@ func New(cfg *config.Config) *App {
 	}
 }
 
-func deriveKey(password string) []byte {
-	salt := sha256.Sum256([]byte(password))
-	return pbkdf2.Key([]byte(password), salt[:], iterations, keySize, sha256.New)
+func deriveKey(password string, salt []byte) []byte {
+	return pbkdf2.Key([]byte(password), salt, iterations, keySize, sha256.New)
+}
+
+func promptPassword() (string, error) {
+	fmt.Print("Enter password: ")
+	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
+	if err != nil {
+		return "", err
+	}
+	return string(bytePassword), nil
 }
 
 func (a *App) Run() error {
@@ -68,7 +78,6 @@ func (a *App) Run() error {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Gophkeeper Client. Type 'help' for commands.")
-	fmt.Println("Note: You must 'login' or 'register' first to initialize encryption.")
 
 	for {
 		fmt.Print("\n> ")
@@ -87,24 +96,31 @@ func (a *App) Run() error {
 		case "version":
 			fmt.Printf("Version: %s\nBuild Date: %s\n", version, buildDate)
 
-		case "register", "login":
+		case "register":
 			if !a.isOnline {
 				fmt.Println("Command requires server connection.")
 				continue
 			}
-			if len(args) < 3 {
-				fmt.Println("Usage: <command> <login> <password>")
+			if len(args) < 2 {
+				fmt.Println("Usage: register <login>")
 				continue
 			}
-			if cmd == "register" {
-				a.handleRegister(args[1], args[2])
-			} else {
-				a.handleLogin(args[1], args[2])
+			a.handleRegister(args[1])
+
+		case "login":
+			if !a.isOnline {
+				fmt.Println("Command requires server connection.")
+				continue
 			}
+			if len(args) < 2 {
+				fmt.Println("Usage: login <login>")
+				continue
+			}
+			a.handleLogin(args[1])
 
 		case "add", "get":
-			if a.masterKey == nil {
-				fmt.Println("Error: Encryption not initialized. Please 'login' or 'register' first.")
+			if a.masterPassword == nil {
+				fmt.Println("Error: Not logged in. Please 'login' first.")
 				continue
 			}
 
@@ -137,8 +153,8 @@ func (a *App) Run() error {
 
 func (a *App) printHelp() {
 	fmt.Println("Commands:")
-	fmt.Println("  register <login> <pass>  Register a new user (online)")
-	fmt.Println("  login <login> <pass>     Login existing user (online)")
+	fmt.Println("  register <login>         Register a new user (online)")
+	fmt.Println("  login <login>            Login existing user (online)")
 	fmt.Println("  add <key> <data>         Add data (requires login)")
 	fmt.Println("  get <key>                Get data (requires login)")
 	fmt.Println("  list                     List all data (offline/online)")
@@ -147,26 +163,38 @@ func (a *App) printHelp() {
 	fmt.Println("  exit                     Exit")
 }
 
-func (a *App) handleRegister(login, pass string) {
-	_, err := a.client.Register(context.Background(), login, pass)
+func (a *App) handleRegister(login string) {
+	password, err := promptPassword()
+	if err != nil {
+		fmt.Printf("Error reading password: %v\n", err)
+		return
+	}
+
+	_, err = a.client.Register(context.Background(), login, password)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	a.masterKey = deriveKey(pass)
-	fmt.Println("User registered successfully. Encryption initialized.")
+	a.masterPassword = []byte(password)
+	fmt.Println("User registered successfully.")
 }
 
-func (a *App) handleLogin(login, pass string) {
-	_, err := a.client.Authenticate(context.Background(), login, pass)
+func (a *App) handleLogin(login string) {
+	password, err := promptPassword()
+	if err != nil {
+		fmt.Printf("Error reading password: %v\n", err)
+		return
+	}
+
+	_, err = a.client.Authenticate(context.Background(), login, password)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	a.masterKey = deriveKey(pass)
-	fmt.Println("Logged in successfully. Encryption initialized.")
+	a.masterPassword = []byte(password)
+	fmt.Println("Logged in successfully.")
 }
 
 func (a *App) handleAdd(key, data string) {
@@ -240,7 +268,20 @@ func (a *App) handleSync() {
 }
 
 func (a *App) encryptData(plaintext []byte) (string, error) {
-	cipher, err := chacha20poly1305.New(a.masterKey)
+	if len(a.masterPassword) == 0 {
+		return "", fmt.Errorf("password not initialized")
+	}
+
+	password := string(a.masterPassword)
+
+	salt := make([]byte, saltSize)
+	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
+		return "", err
+	}
+
+	key := deriveKey(password, salt)
+
+	cipher, err := chacha20poly1305.New(key)
 	if err != nil {
 		return "", err
 	}
@@ -251,26 +292,43 @@ func (a *App) encryptData(plaintext []byte) (string, error) {
 	}
 
 	ciphertext := cipher.Seal(nonce, nonce, plaintext, nil)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
+
+	result := append(salt, ciphertext...)
+
+	return base64.StdEncoding.EncodeToString(result), nil
 }
 
 func (a *App) decryptData(ciphertext string) ([]byte, error) {
+	if len(a.masterPassword) == 0 {
+		return nil, fmt.Errorf("password not initialized")
+	}
+
+	password := string(a.masterPassword)
+
 	encoded, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return nil, err
 	}
 
-	cipher, err := chacha20poly1305.New(a.masterKey)
+	if len(encoded) < saltSize {
+		return nil, fmt.Errorf("data too short")
+	}
+	salt := encoded[:saltSize]
+	remaining := encoded[saltSize:]
+
+	key := deriveKey(password, salt)
+
+	cipher, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, err
 	}
 
 	nonceSize := chacha20poly1305.NonceSize
-	if len(encoded) < nonceSize {
+	if len(remaining) < nonceSize {
 		return nil, fmt.Errorf("ciphertext too short")
 	}
 
-	nonce, encryptedBytes := encoded[:nonceSize], encoded[nonceSize:]
+	nonce, encryptedBytes := remaining[:nonceSize], remaining[nonceSize:]
 	plaintext, err := cipher.Open(nil, nonce, encryptedBytes, nil)
 	if err != nil {
 		return nil, err
