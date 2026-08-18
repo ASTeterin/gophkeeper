@@ -64,9 +64,6 @@ func (s *privateDataService) AddData(ctx context.Context, userID uuid.UUID, key 
 func (s *privateDataService) GetDataByKey(ctx context.Context, userID uuid.UUID, key string) (*model.PrivateData, error) {
 	data, err := s.repo.GetByUserAndKey(ctx, userID, key)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
-		}
 		return nil, err
 	}
 	return data, nil

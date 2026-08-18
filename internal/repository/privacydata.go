@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/ASTeterin/gophkeeper/internal/service"
 
 	"github.com/google/uuid"
 
@@ -37,16 +38,6 @@ func (r *privateDataRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	return nil
 }
 
-func (r *privateDataRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.PrivateData, error) {
-	query := `SELECT id, user_id, data_key, description, data FROM public.private_data WHERE id = $1`
-	var p model.PrivateData
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.UserID, &p.DataKey, &p.Description, &p.Data)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
 func (r *privateDataRepository) ListByUserID(ctx context.Context, userID uuid.UUID) ([]*model.PrivateData, error) {
 	query := `SELECT id, user_id, data_key, description, data FROM public.private_data WHERE user_id = $1`
 	rows, err := r.db.QueryContext(ctx, query, userID)
@@ -71,6 +62,9 @@ func (r *privateDataRepository) GetByUserAndKey(ctx context.Context, userID uuid
 	var p model.PrivateData
 	err := r.db.QueryRowContext(ctx, query, userID, dataKey).Scan(&p.ID, &p.UserID, &p.DataKey, &p.Description, &p.Data)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, service.ErrNotFound
+		}
 		return nil, err
 	}
 	return &p, nil

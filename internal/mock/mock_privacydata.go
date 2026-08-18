@@ -84,21 +84,6 @@ func (mr *MockPrivateDataRepositoryMockRecorder) DeleteByUserID(ctx, userID any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByUserID", reflect.TypeOf((*MockPrivateDataRepository)(nil).DeleteByUserID), ctx, userID)
 }
 
-// GetByID mocks base method.
-func (m *MockPrivateDataRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.PrivateData, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByID", ctx, id)
-	ret0, _ := ret[0].(*model.PrivateData)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetByID indicates an expected call of GetByID.
-func (mr *MockPrivateDataRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockPrivateDataRepository)(nil).GetByID), ctx, id)
-}
-
 // GetByUserAndKey mocks base method.
 func (m *MockPrivateDataRepository) GetByUserAndKey(ctx context.Context, userID uuid.UUID, dataKey string) (*model.PrivateData, error) {
 	m.ctrl.T.Helper()

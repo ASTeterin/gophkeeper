@@ -127,7 +127,7 @@ func Test_privateDataService_GetDataByKey(t *testing.T) {
 			setup: func(m *mock.MockPrivateDataRepository) {
 				m.EXPECT().
 					GetByUserAndKey(gomock.Any(), userID, "missing_key").
-					Return(nil, sql.ErrNoRows).
+					Return(nil, ErrNotFound).
 					Times(1)
 			},
 			expected: ErrNotFound,
