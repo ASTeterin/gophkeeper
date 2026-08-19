@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package private_data;
+
+option go_package = "github.com/ASTeterin/gophkeeper/api";
+
+service UserService {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  rpc Authenticate (AuthenticateRequest) returns (AuthenticateResponse);
+}
+
+service PrivateDataService {
+  rpc Store (StoreRequest) returns (StoreResponse);
+  rpc GetByKey (GetByKeyRequest) returns (PrivateData);
+  rpc GetAll (GetAllRequest) returns (PrivateDataList);
+  rpc Delete (DeleteRequest) returns (DeleteResponse);
+  rpc ReplaceAll (ReplaceAllRequest) returns (ReplaceAllResponse);
+}
+
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+}
+
+message AuthenticateRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message AuthenticateResponse {
+  string user_id = 1;
+}
+
+message PrivateData {
+  string id = 1;
+  string user_id = 2;
+  string data_key = 3;
+  string description = 4;
+  bytes data = 5;
+}
+
+message StoreRequest {
+  string user_id = 1;
+  string data_key = 2;
+  string description = 3;
+  bytes data = 4;
+}
+
+message GetByKeyRequest {
+  string user_id = 1;
+  string key = 2;
+}
+
+message GetAllRequest {
+  string user_id = 1;
+}
+
+message PrivateDataList {
+  repeated PrivateData items = 1;
+}
+
+message DeleteRequest {
+  string user_id = 1;
+  string key = 2;
+}
+
+message ReplaceAllRequest {
+  string user_id = 1;
+  repeated DataItem items = 2;
+}
+
+message DataItem {
+  string data_key = 1;
+  string description = 2;
+  bytes data = 3;
+}
+
+message StoreResponse {}
+
+message DeleteResponse {}
+
+message ReplaceAllResponse {}
