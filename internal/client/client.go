@@ -129,10 +129,15 @@ func (a *App) Run() error {
 
 			if cmd == "add" {
 				if len(args) < 3 {
-					fmt.Println("Usage: add <key> <data>")
+					fmt.Println("Usage: add <key> <data> [description]")
 					continue
 				}
-				a.handleAdd(args[1], args[2])
+				desc := ""
+				if len(args) >= 3 {
+					desc = args[3]
+				}
+				fmt.Println(desc)
+				a.handleAdd(args[1], args[2], desc)
 			} else {
 				if len(args) < 2 {
 					fmt.Println("Usage: get <key>")
@@ -206,18 +211,18 @@ func (a *App) handleLogin(login string) {
 	fmt.Println("Logged in successfully.")
 }
 
-func (a *App) handleAdd(key, data string) {
+func (a *App) handleAdd(key, data, desc string) {
 	encryptedData, err := a.encryptData([]byte(data))
 	if err != nil {
 		fmt.Printf("Encryption error: %v\n", err)
 		return
 	}
 
-	a.store.Add(key, "", []byte(encryptedData))
+	a.store.Add(key, desc, []byte(encryptedData))
 	fmt.Printf("Data added for key: %s\n", key)
 
 	if a.isOnline {
-		err := a.client.AddData(context.Background(), key, "", []byte(encryptedData))
+		err := a.client.AddData(context.Background(), key, desc, []byte(encryptedData))
 		if err != nil {
 			fmt.Printf("Sync error: %v\n", err)
 		}
